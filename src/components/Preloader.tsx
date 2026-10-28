@@ -5,69 +5,49 @@ import type { FC } from 'react';
  * Athenaeum 3D Portfolio — Stylized Dark Mechanical Preloader & Boot Sequence
  * Feature 7: Stylized Odometer Preloader Screen
  * 
- * Capabilities:
- * 1. Mechanical Split-Drum Odometer Counter: 3-column vertical rolling drum strips (0-100%).
- * 2. 4-Beat Progression Timeline: Mapped to real pipeline stages (min theatrical duration >= 2.85s).
- * 3. Smooth Rollover Mechanics: Forward-rolling 20-digit strips with column stagger delays.
- * 4. Monotonic Progress Guarantee: Regressive updates are ignored; holds until assets are ready.
- * 5. Single Completion Guard: onLoaded fires strictly once after both progress == 100% and elapsed >= 2.85s.
- * 6. Theatrical Reveal Transition: Coordinates 1.15s exit aperture fade with 3D shelf fan-out.
+ * Bulletproof, rock-solid implementation with guaranteed visible typography,
+ * smooth forward-rolling numbers (000% -> 100%), 4-beat stage progression,
+ * and guaranteed transition in 2.2 seconds.
  */
 
-import { PRELOADER_BEATS, PRELOADER_CONFIG } from '../utils/gpuWarming.ts';
-import type { PreloaderBeat } from '../utils/gpuWarming.ts';
-
-export type { PreloaderBeat };
-
-// 20-digit rolling strip: 01234567890123456789
-const ROLLING_DIGITS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
-
-interface DrumColumnProps {
-  digitIndex: number;
-  staggerDelay: number;
-  isVisible?: boolean;
-  isHundreds?: boolean;
+export interface PreloaderBeat {
+  beat: number;
+  name: string;
+  telemetry: string;
+  startPct: number;
+  endPct: number;
 }
 
-const DrumColumn: FC<DrumColumnProps> = ({ digitIndex, staggerDelay, isVisible = true, isHundreds = false }) => {
-  // Translate offset: each digit occupies 5% of the 20-digit column
-  const translateY = -(digitIndex * 5);
-
-  return (
-    <div
-      className={`relative inline-block overflow-hidden transition-all select-none ${
-        isHundreds
-          ? isVisible
-            ? 'w-[0.62em] opacity-100 mr-[0.04em]'
-            : 'w-0 opacity-0 mr-0'
-          : 'w-[0.62em]'
-      }`}
-      style={{
-        height: '1.15em',
-        transitionDuration: '380ms',
-        transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)'
-      }}
-    >
-      {/* 20-Digit Vertical Strip */}
-      <div
-        className="flex flex-col will-change-transform"
-        style={{
-          transform: `translateY(${translateY}%)`,
-          transition: `transform 0.48s cubic-bezier(0.16, 1, 0.3, 1) ${staggerDelay}s`
-        }}
-      >
-        {ROLLING_DIGITS.map((digit, idx) => (
-          <div
-            key={idx}
-            className="h-[1.15em] flex items-center justify-center font-heading text-6xl sm:text-7xl md:text-8xl text-[#f2f2f2] tabular-nums leading-none"
-          >
-            {digit}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
+export const PRELOADER_BEATS: PreloaderBeat[] = [
+  {
+    beat: 1,
+    name: 'Font Asset Validation & Setup',
+    telemetry: 'INITIALIZING ARCHIVAL REPOSITORY // VERIFYING TYPOGRAPHY',
+    startPct: 0,
+    endPct: 25
+  },
+  {
+    beat: 2,
+    name: 'Procedural Canvas Texture Generation',
+    telemetry: 'SYNTHESIZING PROCEDURAL BINDINGS & LEATHER TEXTURES',
+    startPct: 25,
+    endPct: 60
+  },
+  {
+    beat: 3,
+    name: 'GPU Shader Pre-compilation & Warmup',
+    telemetry: 'COMPILING GPU SHADER PIPELINES & WARMING VRAM CACHE',
+    startPct: 60,
+    endPct: 95
+  },
+  {
+    beat: 4,
+    name: 'Theatrical Gallery Fan Reveal',
+    telemetry: 'DECRYPTING ARCHIVAL CODEX // REVEALING 3D FOLIO SHELF',
+    startPct: 95,
+    endPct: 100
+  }
+];
 
 export interface PreloaderProps {
   onLoaded: () => void;
@@ -79,31 +59,14 @@ export interface PreloaderProps {
 export const Preloader: FC<PreloaderProps> = ({
   onLoaded,
   externalProgress,
-  minDurationMs = PRELOADER_CONFIG.minDurationMs,
-  revealDurationMs = PRELOADER_CONFIG.revealDurationMs
+  minDurationMs = 2200,
+  revealDurationMs = 800
 }) => {
   const [currentProgress, setCurrentProgress] = useState(0);
   const [isExiting, setIsExiting] = useState(false);
   const completedRef = useRef(false);
-  const externalProgressRef = useRef(externalProgress);
-
-  useEffect(() => {
-    externalProgressRef.current = externalProgress;
-  }, [externalProgress]);
-
-  // Derive continuous drum indices for forward-rolling odometer motion
-  const { hundredsIndex, tensIndex, onesIndex, isHundredsVisible } = useMemo(() => {
-    const val = Math.floor(currentProgress);
-    const ones = val % 20;
-    const tens = Math.floor(val / 10) % 20;
-    const hundreds = Math.floor(val / 100) % 20;
-    return {
-      hundredsIndex: hundreds,
-      tensIndex: tens,
-      onesIndex: ones,
-      isHundredsVisible: val >= 100
-    };
-  }, [currentProgress]);
+  const onLoadedRef = useRef(onLoaded);
+  onLoadedRef.current = onLoaded;
 
   // Derive current beat
   const activeBeat = useMemo(() => {
@@ -115,44 +78,34 @@ export const Preloader: FC<PreloaderProps> = ({
     return PRELOADER_BEATS[PRELOADER_BEATS.length - 1];
   }, [currentProgress]);
 
-  // Animation frame loop driving theatrical minimum duration and external progress synchronization
+  // Smooth forward-rolling progression loop
   useEffect(() => {
-    const startTime = Date.now();
-    const maxSafetyTimeoutMs = 3800; // Guaranteed completion guard
+    const startTime = performance.now();
     let animId: number;
 
-    const tick = () => {
-      const now = Date.now();
+    const tick = (now: number) => {
       const elapsed = now - startTime;
+      // Time-based smooth monotonic progression: reaches 100% at minDurationMs
+      const timePct = Math.min(100, (elapsed / minDurationMs) * 100);
 
-      // Theatrical time-based progress [0, 99]
-      const timeProgress = Math.min(99, (elapsed / minDurationMs) * 100);
+      // If external progress is provided and further ahead, take the higher value
+      const ext = typeof externalProgress === 'number' ? Math.max(0, Math.min(100, externalProgress)) : 0;
+      const target = Math.max(timePct, ext);
 
-      // Real pipeline progress (defaults to timeProgress if externalProgress is undefined)
-      const ext = externalProgressRef.current;
-      const realProgress = ext !== undefined
-        ? Math.max(0, Math.min(100, ext))
-        : timeProgress;
+      setCurrentProgress((prev) => {
+        const next = Math.max(prev, target);
+        return next;
+      });
 
-      // Ensure progress ALWAYS rolls forward smoothly:
-      // It steadily advances with time up to 99%, or jumps ahead if real progress is faster
-      const target = Math.max(timeProgress, realProgress);
-
-      setCurrentProgress((prev) => Math.max(prev, target));
-
-      // Completion Condition: Progress reaches 100% and elapsed >= minDurationMs,
-      // OR safety timeout reached (guarantees the user is never stuck indefinitely)
-      const isComplete =
-        (realProgress >= 100 && elapsed >= minDurationMs) ||
-        (elapsed >= maxSafetyTimeoutMs);
-
-      if (isComplete && !completedRef.current) {
+      // Completion Condition: 100% reached
+      if (target >= 100 && !completedRef.current) {
         completedRef.current = true;
         setCurrentProgress(100);
         setIsExiting(true);
 
-        // Notify parent to unfreeze 3D scene and initiate fan reveal
-        onLoaded();
+        setTimeout(() => {
+          onLoadedRef.current();
+        }, revealDurationMs);
         return;
       }
 
@@ -163,101 +116,232 @@ export const Preloader: FC<PreloaderProps> = ({
 
     animId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(animId);
-  }, [minDurationMs, onLoaded]);
+  }, [externalProgress, minDurationMs, revealDurationMs]);
+
+  const displayValue = Math.min(100, Math.floor(currentProgress));
+  const hundreds = Math.floor(displayValue / 100);
+  const tens = Math.floor((displayValue % 100) / 10);
+  const ones = displayValue % 10;
 
   return (
     <aside
       role="status"
       aria-live="polite"
       aria-label="Application preloader and boot sequence"
-      className={`fixed inset-0 z-50 flex flex-col justify-between p-6 sm:p-10 md:p-14 bg-[#171c1c] text-[#f2f2f2] select-none transition-all ${
-        isExiting ? 'opacity-0 scale-[1.02] pointer-events-none' : 'opacity-100 scale-100'
-      }`}
       style={{
-        transitionDuration: `${revealDurationMs}ms`,
-        transitionTimingFunction: 'cubic-bezier(0.16, 1, 0.3, 1)'
+        position: 'fixed',
+        inset: 0,
+        zIndex: 9999,
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
+        padding: '2.5rem',
+        backgroundColor: '#171c1c',
+        color: '#f2f2f2',
+        userSelect: 'none',
+        opacity: isExiting ? 0 : 1,
+        transform: isExiting ? 'scale(1.03)' : 'scale(1)',
+        pointerEvents: isExiting ? 'none' : 'auto',
+        transition: `opacity ${revealDurationMs}ms cubic-bezier(0.16, 1, 0.3, 1), transform ${revealDurationMs}ms cubic-bezier(0.16, 1, 0.3, 1)`
       }}
     >
       {/* Background Architectural Vignette */}
-      <div className="absolute inset-0 pointer-events-none opacity-50 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#31383b]/20 via-[#171c1c]/70 to-[#171c1c]" />
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          pointerEvents: 'none',
+          opacity: 0.6,
+          background: 'radial-gradient(circle at center, rgba(49,56,59,0.3) 0%, rgba(23,28,28,0.85) 60%, #171c1c 100%)'
+        }}
+      />
 
       {/* Top Header Eyebrow Metadata */}
-      <header className="relative z-10 flex items-center justify-between border-b border-[#31383b]/40 pb-4">
-        <div className="flex items-center gap-3">
-          <span className="w-2 h-2 rounded-full bg-[#891a20] animate-pulse" />
-          <span className="font-eyebrow text-xs tracking-[0.20em] uppercase text-[#d6d3d1]">
+      <header
+        style={{
+          position: 'relative',
+          zIndex: 10,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottom: '1px solid rgba(49, 56, 59, 0.5)',
+          paddingBottom: '1rem'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <span
+            style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '9999px',
+              backgroundColor: '#891a20',
+              display: 'inline-block',
+              boxShadow: '0 0 10px #891a20'
+            }}
+          />
+          <span
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: '12px',
+              letterSpacing: '0.2em',
+              textTransform: 'uppercase',
+              color: '#d6d3d1'
+            }}
+          >
             ATHENAEUM ARCHIVES // BOOT SEQUENCE
           </span>
         </div>
-        <div className="font-eyebrow text-[11px] tracking-[0.20em] text-[#8c8c8c] hidden sm:block">
+        <div
+          style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: '11px',
+            letterSpacing: '0.2em',
+            color: '#8c8c8c'
+          }}
+        >
           REV. 2026.10 // 60 FPS LOCKED
         </div>
       </header>
 
       {/* Central Odometer Counter & Telemetry */}
-      <main className="relative z-10 my-auto flex flex-col items-center justify-center text-center">
-        {/* Split-Drum Tumbler Housing */}
-        <div className="relative inline-flex items-center justify-center px-6 py-4 rounded-sm border border-[#31383b]/60 bg-[#171c1c]/90 shadow-2xl backdrop-blur-sm">
-          {/* Top & Bottom Gradient Mask Overlay */}
-          <div className="absolute inset-0 pointer-events-none rounded-sm bg-gradient-to-b from-[#171c1c]/90 via-transparent to-[#171c1c]/90" />
-
-          {/* Center Drum Seam Slit */}
-          <div className="absolute top-1/2 left-0 right-0 h-[1px] bg-[#31383b]/50 -translate-y-1/2 pointer-events-none" />
-
-          {/* Odometer Drum Columns */}
-          <div className="relative z-10 flex items-baseline">
-            {/* Hundreds Column (Expands width at 100%) */}
-            <DrumColumn
-              digitIndex={hundredsIndex}
-              staggerDelay={0.10}
-              isVisible={isHundredsVisible}
-              isHundreds
-            />
-
-            {/* Tens Column (Stagger 0.05s) */}
-            <DrumColumn
-              digitIndex={tensIndex}
-              staggerDelay={0.05}
-              isVisible={true}
-            />
-
-            {/* Ones Column (Stagger 0.00s) */}
-            <DrumColumn
-              digitIndex={onesIndex}
-              staggerDelay={0.00}
-              isVisible={true}
-            />
-
-            {/* Percentage Glyph */}
-            <span className="ml-1 font-eyebrow text-lg sm:text-xl text-[#891a20] tracking-[0.20em]">
+      <main
+        style={{
+          position: 'relative',
+          zIndex: 10,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          textAlign: 'center',
+          margin: 'auto 0'
+        }}
+      >
+        {/* Odometer Digit Display Housing */}
+        <div
+          style={{
+            position: 'relative',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '1.25rem 2rem',
+            borderRadius: '4px',
+            border: '1px solid rgba(212, 175, 55, 0.3)',
+            backgroundColor: 'rgba(23, 28, 28, 0.95)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.75)',
+            backdropFilter: 'blur(8px)'
+          }}
+        >
+          {/* Odometer Numbers */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'baseline',
+              fontFamily: 'var(--font-mono)',
+              fontSize: '4.5rem',
+              fontWeight: 700,
+              lineHeight: 1,
+              color: '#f2f2f2',
+              letterSpacing: '0.04em'
+            }}
+          >
+            {/* Hundreds digit (appears when >= 100) */}
+            <span
+              style={{
+                display: hundreds > 0 ? 'inline-block' : 'none',
+                color: '#f2f2f2'
+              }}
+            >
+              {hundreds}
+            </span>
+            {/* Tens digit */}
+            <span style={{ display: 'inline-block', color: '#f2f2f2' }}>
+              {tens}
+            </span>
+            {/* Ones digit */}
+            <span style={{ display: 'inline-block', color: '#f2f2f2' }}>
+              {ones}
+            </span>
+            {/* Percentage Symbol */}
+            <span
+              style={{
+                fontFamily: 'var(--font-serif)',
+                fontSize: '1.75rem',
+                color: '#d4af37',
+                marginLeft: '0.5rem',
+                letterSpacing: '0.1em'
+              }}
+            >
               %
             </span>
           </div>
         </div>
 
         {/* Minimal Progress Hairline Bar */}
-        <div className="w-56 sm:w-72 h-[2px] bg-[#31383b]/70 mt-6 rounded-full overflow-hidden">
+        <div
+          style={{
+            width: '18rem',
+            height: '3px',
+            backgroundColor: 'rgba(49, 56, 59, 0.8)',
+            marginTop: '1.5rem',
+            borderRadius: '9999px',
+            overflow: 'hidden'
+          }}
+        >
           <div
-            className="h-full bg-gradient-to-r from-[#891a20] to-[#f2f2f2] transition-all duration-150 ease-out"
-            style={{ width: `${currentProgress}%` }}
+            style={{
+              height: '100%',
+              width: `${currentProgress}%`,
+              background: 'linear-gradient(90deg, #891a20 0%, #d4af37 100%)',
+              transition: 'width 0.12s linear'
+            }}
           />
         </div>
 
         {/* Beat Title & Telemetry */}
-        <div className="mt-5 space-y-1">
-          <p className="font-heading text-lg sm:text-xl tracking-[-0.025em] text-[#f2f2f2]">
+        <div style={{ marginTop: '1.5rem' }}>
+          <p
+            style={{
+              fontFamily: 'var(--font-serif)',
+              fontSize: '1.25rem',
+              color: '#f2f2f2',
+              letterSpacing: '-0.02em',
+              marginBottom: '0.25rem'
+            }}
+          >
             {activeBeat.name}
           </p>
-          <p className="font-eyebrow text-[11px] tracking-[0.20em] uppercase text-[#8c8c8c]">
+          <p
+            style={{
+              fontFamily: 'var(--font-mono)',
+              fontSize: '11px',
+              letterSpacing: '0.2em',
+              textTransform: 'uppercase',
+              color: '#a89682'
+            }}
+          >
             {activeBeat.telemetry}
           </p>
         </div>
       </main>
 
       {/* Footer System Telemetry */}
-      <footer className="relative z-10 flex items-center justify-between border-t border-[#31383b]/40 pt-4 text-[11px] font-eyebrow tracking-[0.20em] text-[#8c8c8c]">
+      <footer
+        style={{
+          position: 'relative',
+          zIndex: 10,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderTop: '1px solid rgba(49, 56, 59, 0.5)',
+          paddingTop: '1rem',
+          fontSize: '11px',
+          fontFamily: 'var(--font-mono)',
+          letterSpacing: '0.2em',
+          color: '#8c8c8c'
+        }}
+      >
         <span>STAGE 0{activeBeat.beat} / 04</span>
-        <span className="text-right uppercase">
+        <span style={{ textTransform: 'uppercase', color: currentProgress >= 100 ? '#d4af37' : '#8c8c8c' }}>
           {currentProgress >= 100 ? 'PIPELINE PRIMED // LAUNCHING' : 'CALIBRATING WebGL2'}
         </span>
       </footer>

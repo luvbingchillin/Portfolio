@@ -38,6 +38,15 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
   const isLoadedRef = useRef(Boolean(isLoaded));
   const revealStartTimeRef = useRef<number | null>(null);
 
+  const onSelectBookRef = useRef(onSelectBook);
+  onSelectBookRef.current = onSelectBook;
+  const onOpenSpreadRef = useRef(onOpenSpread);
+  onOpenSpreadRef.current = onOpenSpread;
+  const onProgressRef = useRef(onProgress);
+  onProgressRef.current = onProgress;
+  const onReadyRef = useRef(onReady);
+  onReadyRef.current = onReady;
+
   const requestRenderRef = useRef<(frames?: number) => void>(() => {});
 
   // References for mutable state within the requestAnimationFrame loop
@@ -302,21 +311,21 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
     // --- 5. Background Asynchronous Preloading & GPU Warming Pipeline ---
     const runWarmup = async () => {
       try {
-        onProgress?.(10);
+        onProgressRef.current?.(10);
         // Beat 1: Validate fonts
         await ensureFontsReady(1500);
         if (isDisposed) return;
-        onProgress?.(25);
+        onProgressRef.current?.(25);
 
         // Beat 2: Batch texture preparation with mapped progress (25% -> 60%)
-        onProgress?.(35);
+        onProgressRef.current?.(35);
         await prepareAllBookTexturesAsync(books, (pct) => {
           if (isDisposed) return;
           const mapped = Math.round(25 + (pct / 100) * 35);
-          onProgress?.(mapped);
+          onProgressRef.current?.(mapped);
         });
         if (isDisposed) return;
-        onProgress?.(60);
+        onProgressRef.current?.(60);
 
         // Beat 3: GPU shader pre-compilation & warming (60% -> 95%)
         await prepareSceneAssets({
@@ -328,19 +337,19 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
           textures: bookTexturesMap,
           bookGroups,
           onProgress: (pct) => {
-            if (!isDisposed) onProgress?.(pct);
+            if (!isDisposed) onProgressRef.current?.(pct);
           }
         });
         if (isDisposed) return;
 
         // Beat 4: Ready for reveal
-        onProgress?.(100);
-        onReady?.();
+        onProgressRef.current?.(100);
+        onReadyRef.current?.();
       } catch (err) {
         console.warn('Asset warmup encountered warning:', err);
         if (!isDisposed) {
-          onProgress?.(100);
-          onReady?.();
+          onProgressRef.current?.(100);
+          onReadyRef.current?.();
         }
       }
     };
@@ -611,7 +620,7 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
         const snapped = Math.round(stateRef.current.targetScroll);
         const clamped = Math.max(0, Math.min(books.length - 1, snapped));
         stateRef.current.targetScroll = clamped;
-        onSelectBook(clamped);
+        onSelectBookRef.current(clamped);
       } else {
         // Click raycasting
         raycaster.setFromCamera(RAYCAST_MOUSE, camera);
@@ -627,11 +636,11 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
               // Guard: Block opening detail modal while book is mid-flip
               const isMidFlip = stateRef.current.flipAngle > 0.05 && stateRef.current.flipAngle < Math.PI - 0.05;
               if (!isMidFlip) {
-                onOpenSpread();
+                onOpenSpreadRef.current();
               }
             } else {
               // Click neighbor selects it
-              onSelectBook(clickedIdx);
+              onSelectBookRef.current(clickedIdx);
             }
           }
         }
@@ -651,7 +660,7 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
       requestRender(10);
       const snapped = Math.round(stateRef.current.targetScroll);
       if (snapped !== stateRef.current.activeIndex && Math.abs(stateRef.current.targetScroll - snapped) < 0.25) {
-        onSelectBook(snapped);
+        onSelectBookRef.current(snapped);
       }
     };
 
@@ -703,7 +712,7 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
       }
       renderer.dispose();
     };
-  }, [books, onSelectBook, onOpenSpread, onProgress, onReady]);
+  }, [books]);
 
   return (
     <div

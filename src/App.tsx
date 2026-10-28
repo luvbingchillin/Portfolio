@@ -49,13 +49,23 @@ export function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleKeyDown]);
 
-  const handleSelectIndex = (index: number) => {
+  const handleSelectIndex = useCallback((index: number) => {
     setActiveIndex(index);
     // Reset flip when switching to another book for clean presentation
-    if (index !== activeIndex) {
-      setIsFlipped(false);
-    }
-  };
+    setIsFlipped(false);
+  }, []);
+
+  const handleOpenSpread = useCallback(() => {
+    setIsSpreadOpen(true);
+  }, []);
+
+  const handleCloseSpread = useCallback(() => {
+    setIsSpreadOpen(false);
+  }, []);
+
+  const handleToggleFlip = useCallback(() => {
+    setIsFlipped((prev) => !prev);
+  }, []);
 
   return (
     <main className="relative w-screen h-screen overflow-hidden bg-[#171c1c] text-[#f2f2f2] font-body">
@@ -70,7 +80,7 @@ export function App() {
         isLoaded={isLoaded}
         onProgress={setLoadProgress}
         onSelectBook={handleSelectIndex}
-        onOpenSpread={() => setIsSpreadOpen(true)}
+        onOpenSpread={handleOpenSpread}
       />
 
       {/* Stylized Dark Split-Drum Odometer Preloader Screen */}
@@ -88,8 +98,8 @@ export function App() {
           activeIndex={activeIndex}
           isFlipped={isFlipped}
           onSelectIndex={handleSelectIndex}
-          onToggleFlip={() => setIsFlipped((prev) => !prev)}
-          onOpenSpread={() => setIsSpreadOpen(true)}
+          onToggleFlip={handleToggleFlip}
+          onOpenSpread={handleOpenSpread}
         />
       </div>
 
@@ -97,7 +107,7 @@ export function App() {
       {isSpreadOpen && (
         <BookDetailModal
           book={BOOKS_CATALOG[activeIndex]}
-          onClose={() => setIsSpreadOpen(false)}
+          onClose={handleCloseSpread}
         />
       )}
     </main>

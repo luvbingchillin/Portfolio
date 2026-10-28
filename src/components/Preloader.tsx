@@ -78,18 +78,23 @@ export const Preloader: FC<PreloaderProps> = ({
     return PRELOADER_BEATS[PRELOADER_BEATS.length - 1];
   }, [currentProgress]);
 
+  const externalProgressRef = useRef(externalProgress);
+  useEffect(() => {
+    externalProgressRef.current = externalProgress;
+  }, [externalProgress]);
+
   // Smooth forward-rolling progression loop
   useEffect(() => {
     const startTime = performance.now();
     let animId: number;
 
     const tick = (now: number) => {
-      const elapsed = now - startTime;
+      const elapsed = Math.max(0, now - startTime);
       // Time-based smooth monotonic progression: reaches 100% at minDurationMs
       const timePct = Math.min(100, (elapsed / minDurationMs) * 100);
 
       // If external progress is provided and further ahead, take the higher value
-      const ext = typeof externalProgress === 'number' ? Math.max(0, Math.min(100, externalProgress)) : 0;
+      const ext = typeof externalProgressRef.current === 'number' ? Math.max(0, Math.min(100, externalProgressRef.current)) : 0;
       const target = Math.max(timePct, ext);
 
       setCurrentProgress((prev) => {
@@ -116,7 +121,7 @@ export const Preloader: FC<PreloaderProps> = ({
 
     animId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(animId);
-  }, [externalProgress, minDurationMs, revealDurationMs]);
+  }, [minDurationMs, revealDurationMs]);
 
   const displayValue = Math.min(100, Math.floor(currentProgress));
   const hundreds = Math.floor(displayValue / 100);

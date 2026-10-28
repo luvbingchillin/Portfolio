@@ -1,9 +1,10 @@
 import { useEffect } from 'react';
 import type { FC } from 'react';
 import type { ProjectBook } from '../types/book';
+import { BalancedText } from '../utils/textBalance';
 import { X, ExternalLink, Github, Layers, Award } from './Icons';
 
-interface BookDetailModalProps {
+export interface BookDetailModalProps {
   book: ProjectBook | null;
   onClose: () => void;
 }
@@ -20,81 +21,87 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({ book, onClose }) => 
   if (!book) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/80 backdrop-blur-md animate-fade-in">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md animate-fade-in">
       {/* Click outside backdrop */}
       <div className="absolute inset-0" onClick={onClose} />
 
-      {/* Two-Page Archival Reading Spread */}
-      <div className="relative z-10 w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-lg shadow-2xl bg-[#f5ede0] text-[#1c1915] border border-[#d4af37]/40 flex flex-col md:flex-row">
+      {/* Two-Page Archival Editorial Monograph Spread */}
+      <div className="relative z-10 w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-sm shadow-2xl bg-[#171c1c] text-[#f2f2f2] border border-[#31383b] flex flex-col md:flex-row">
         
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 z-20 p-2 rounded-full bg-[#2a221b]/10 hover:bg-[#2a221b]/20 text-[#2a221b] transition-colors"
-          title="Close folio (Esc)"
+          className="absolute top-4 right-4 z-20 p-2 rounded-sm bg-[#1f2527] hover:bg-[#31383b] text-[#f2f2f2] border border-[#31383b] transition-colors cursor-pointer"
+          title="Close Folio (Esc)"
         >
           <X className="w-5 h-5" />
         </button>
 
-        {/* LEFT PAGE (Exposition & Archival Metadata) */}
-        <div className="flex-1 p-8 sm:p-12 border-b md:border-b-0 md:border-r border-[#d4af37]/30 relative">
-          {/* Subtle page corner stamp */}
-          <div className="text-[10px] uppercase font-mono tracking-widest text-[#8b7765] mb-6 flex justify-between items-center">
-            <span>{book.stackShelf}</span>
-            <span>{book.callNumber}</span>
+        {/* LEFT PAGE: Exposition & Archival Metadata */}
+        <div className="flex-1 p-8 sm:p-12 border-b md:border-b-0 md:border-r border-[#31383b] relative">
+          
+          {/* Folio Stamp */}
+          <div className="text-[10px] uppercase font-eyebrow tracking-[0.20em] text-[#d6d3d1] mb-6 flex justify-between items-center border-b border-[#31383b] pb-2.5">
+            <span>{book.stackShelf.toUpperCase()}</span>
+            <span>CALL NO. {book.callNumber}</span>
           </div>
 
           <div className="space-y-4">
-            <span className="inline-block px-3 py-1 rounded text-xs font-serif tracking-wider bg-[#d4af37]/15 text-[#6c5112] border border-[#d4af37]/40 font-semibold">
+            <span className="inline-block px-2.5 py-0.5 rounded-sm text-[10px] font-eyebrow tracking-[0.20em] bg-[#1f2527] text-[#f2f2f2] border border-[#31383b]">
               {book.category.toUpperCase()}
             </span>
 
-            <h2 className="text-3xl sm:text-4xl font-serif font-bold text-[#1a1410] leading-tight">
+            <BalancedText
+              as="h2"
+              lines={2}
+              reserveLines={2}
+              className="text-3xl sm:text-4xl font-heading font-normal text-[#f2f2f2] leading-[1.08] tracking-[-0.04em]"
+            >
               {book.title}
-            </h2>
+            </BalancedText>
 
-            <p className="text-lg italic font-serif text-[#635547] border-l-2 border-[#d4af37] pl-3 py-0.5">
+            <p className="text-base font-body text-[#d6d3d1] tracking-[-0.025em] border-l-2 border-[#891a20] pl-3 py-0.5">
               {book.subtitle}
             </p>
 
-            {/* Illuminated Drop-Cap Synopsis */}
-            <div className="pt-4 text-[#2a241e] font-serif text-base leading-relaxed text-justify">
-              <span className="float-left text-5xl font-serif font-bold text-[#8c6d23] leading-none pr-3 pt-1">
+            {/* Illuminated Editorial Drop-Cap Synopsis */}
+            <div className="pt-4 text-[#d6d3d1] font-body text-sm sm:text-base leading-relaxed text-justify tracking-[-0.025em]">
+              <span className="float-left text-5xl font-heading font-normal text-[#f2f2f2] leading-none pr-3 pt-0.5">
                 {book.fullSynopsis.charAt(0)}
               </span>
               {book.fullSynopsis.slice(1)}
             </div>
 
-            {/* Archival Metrics */}
+            {/* Clean Archival Metric Grid */}
             <div className="pt-6 grid grid-cols-3 gap-3">
               {book.metrics.map((m, i) => (
-                <div key={i} className="p-3 rounded bg-[#ebe0ce] border border-[#d4af37]/25 text-center">
-                  <div className="text-[10px] font-mono uppercase tracking-wider text-[#7d6c5c]">{m.label}</div>
-                  <div className="text-lg font-serif font-bold text-[#1f1914] mt-1">{m.value}</div>
+                <div key={i} className="p-3 rounded-sm bg-[#1f2527] border border-[#31383b] text-center">
+                  <div className="text-[10px] font-eyebrow uppercase tracking-[0.20em] text-[#d6d3d1]">{m.label}</div>
+                  <div className="text-lg font-heading font-normal text-[#f2f2f2] mt-1 tabular-nums">{m.value}</div>
                 </div>
               ))}
             </div>
           </div>
         </div>
 
-        {/* RIGHT PAGE (Key Systems, Technical Ingredients & Treatises) */}
-        <div className="flex-1 p-8 sm:p-12 bg-[#f2e7d5] flex flex-col justify-between">
+        {/* RIGHT PAGE: Key Systems, Technical Ingredients & Treatises */}
+        <div className="flex-1 p-8 sm:p-12 bg-[#171c1c] flex flex-col justify-between">
           <div className="space-y-6">
-            <div className="text-[10px] uppercase font-mono tracking-widest text-[#8b7765] flex justify-between items-center">
-              <span>FOLIO ANNOTATION</span>
-              <span>YEAR OF COMPOSITION: {book.year}</span>
+            <div className="text-[10px] uppercase font-eyebrow tracking-[0.20em] text-[#d6d3d1] flex justify-between items-center border-b border-[#31383b] pb-2.5">
+              <span>FOLIO ANNOTATION // SYSTEMS</span>
+              <span>COMPOSITION: {book.year}</span>
             </div>
 
-            {/* Key Technical Features */}
+            {/* Key Technical Highlights */}
             <div>
-              <h3 className="text-xs font-mono uppercase tracking-widest text-[#7a644e] mb-3 flex items-center gap-2">
-                <Award className="w-4 h-4 text-[#8c6d23]" />
+              <h3 className="text-xs font-eyebrow uppercase tracking-[0.20em] text-[#f2f2f2] mb-3 flex items-center gap-2">
+                <Award className="w-4 h-4 text-[#891a20]" />
                 Treatise Highlights & Engineering Notes
               </h3>
               <ul className="space-y-2.5">
                 {book.keyFeatures.map((feat, idx) => (
-                  <li key={idx} className="text-sm font-serif text-[#2f2720] flex items-start gap-2.5">
-                    <span className="text-[#8c6d23] font-serif font-bold mt-0.5">§</span>
+                  <li key={idx} className="text-sm font-body text-[#d6d3d1] flex items-start gap-2.5 tracking-[-0.025em]">
+                    <span className="text-[#891a20] font-mono mt-0.5">—</span>
                     <span>{feat}</span>
                   </li>
                 ))}
@@ -103,15 +110,15 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({ book, onClose }) => 
 
             {/* Tech Stack Ingredients */}
             <div>
-              <h3 className="text-xs font-mono uppercase tracking-widest text-[#7a644e] mb-3 flex items-center gap-2">
-                <Layers className="w-4 h-4 text-[#8c6d23]" />
-                Applied Technologies & Medium
+              <h3 className="text-xs font-eyebrow uppercase tracking-[0.20em] text-[#f2f2f2] mb-3 flex items-center gap-2">
+                <Layers className="w-4 h-4 text-[#891a20]" />
+                Applied Technologies & Stack
               </h3>
               <div className="flex flex-wrap gap-2">
                 {book.techStack.map((tech, idx) => (
                   <span
                     key={idx}
-                    className="px-2.5 py-1 rounded text-xs font-mono bg-[#e4d6bf] text-[#2c231a] border border-[#cfbd9f]"
+                    className="px-2.5 py-1 rounded-sm text-xs font-mono tracking-wider bg-[#1f2527] text-[#f2f2f2] border border-[#31383b]"
                   >
                     {tech}
                   </span>
@@ -121,9 +128,9 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({ book, onClose }) => 
           </div>
 
           {/* Action Links & Sign-off */}
-          <div className="pt-8 border-t border-[#d4af37]/30 flex flex-wrap items-center justify-between gap-4">
-            <div className="text-xs font-serif italic text-[#726150]">
-              Curated by <strong className="font-semibold text-[#1c1611]">{book.curator}</strong>
+          <div className="pt-8 border-t border-[#31383b] flex flex-wrap items-center justify-between gap-4 mt-6">
+            <div className="text-xs font-body italic text-[#d6d3d1]">
+              Curated by <strong className="font-medium text-[#f2f2f2] not-italic">{book.curator}</strong>
             </div>
 
             <div className="flex items-center gap-3">
@@ -132,7 +139,7 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({ book, onClose }) => 
                   href={book.githubUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded text-xs font-mono font-medium bg-[#211a14] text-[#f4ecd8] hover:bg-[#382d22] transition-colors shadow-sm"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-sm text-xs font-mono font-medium bg-[#1f2527] text-[#f2f2f2] border border-[#31383b] hover:border-[#f2f2f2] transition-colors shadow-sm"
                 >
                   <Github className="w-3.5 h-3.5" />
                   Source Code
@@ -143,7 +150,7 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({ book, onClose }) => 
                   href={book.liveUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded text-xs font-mono font-medium bg-[#8c6d23] text-white hover:bg-[#a6822c] transition-colors shadow-sm"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-sm text-xs font-mono font-medium bg-[#f2f2f2] text-[#000000] hover:bg-white transition-colors shadow-sm"
                 >
                   <ExternalLink className="w-3.5 h-3.5" />
                   Live System

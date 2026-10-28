@@ -1,24 +1,26 @@
 import { useState, useEffect } from 'react';
 import type { FC } from 'react';
 import type { ProjectBook } from '../types/book';
+import { BalancedText, initEditorialTypography } from '../utils/textBalance';
 import {
   BookOpen,
   RotateCw,
   ChevronLeft,
   ChevronRight,
-  Github,
-  Compass,
-  Library,
-  Clock
+  Github
 } from './Icons';
 
-interface LibraryUIProps {
+export interface LibraryUIProps {
   books: ProjectBook[];
   activeIndex: number;
   isFlipped: boolean;
   onSelectIndex: (index: number) => void;
   onToggleFlip: () => void;
   onOpenSpread: () => void;
+  // Extended state contracts for motion & progress
+  scrollProgress?: number;
+  isDragging?: boolean;
+  velocity?: number;
 }
 
 export const LibraryUI: FC<LibraryUIProps> = ({
@@ -27,20 +29,23 @@ export const LibraryUI: FC<LibraryUIProps> = ({
   isFlipped,
   onSelectIndex,
   onToggleFlip,
-  onOpenSpread
+  onOpenSpread,
+  scrollProgress
 }) => {
   const activeBook = books[activeIndex];
   const [currentTime, setCurrentTime] = useState('');
 
+  // Live chronometer in 24-hour UTC format
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
       setCurrentTime(
-        now.toLocaleTimeString('en-US', {
+        now.toLocaleTimeString('en-GB', {
           hour12: false,
           hour: '2-digit',
           minute: '2-digit',
-          second: '2-digit'
+          second: '2-digit',
+          timeZone: 'UTC'
         })
       );
     };
@@ -49,80 +54,99 @@ export const LibraryUI: FC<LibraryUIProps> = ({
     return () => clearInterval(interval);
   }, []);
 
-  const romanNumerals = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII'];
+  // Initialize and observe typography balance
+  useEffect(() => {
+    return initEditorialTypography();
+  }, []);
+
+  // Format indices with leading zero (e.g., 01, 02)
+  const formatIndex = (n: number) => (n < 9 ? `0${n + 1}` : `${n + 1}`);
+
+  // Calculate normalized progress percentage (0 - 100)
+  const progressRatio = typeof scrollProgress === 'number'
+    ? Math.max(0, Math.min(100, (scrollProgress / Math.max(1, books.length - 1)) * 100))
+    : (activeIndex / Math.max(1, books.length - 1)) * 100;
 
   return (
     <div className="absolute inset-0 pointer-events-none flex flex-col justify-between p-6 sm:p-8 z-10 select-none">
       
-      {/* TOP BAR: Library Archive Navigation */}
-      <header className="flex items-center justify-between pointer-events-auto border-b border-[#d4af37]/20 pb-4 backdrop-blur-sm bg-[#0e0c0a]/40 px-5 py-3 rounded-lg">
-        {/* Brand / Crest */}
+      {/* 1. TOP BAR: A24 Editorial Masthead & Reading Chronometer */}
+      <header className="flex items-center justify-between pointer-events-auto border-b border-[#31383b]/60 pb-3.5 backdrop-blur-md bg-[#171c1c]/60 px-5 py-3 rounded-sm">
+        {/* Brand / Publication Title */}
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded bg-[#241c14] border border-[#d4af37]/40 text-[#d4af37]">
-            <Library className="w-5 h-5" />
-          </div>
+          <div className="w-2.5 h-2.5 rounded-full bg-[#891a20] shadow-[0_0_8px_rgba(137,26,32,0.6)]" />
           <div>
-            <h1 className="text-sm font-serif font-bold tracking-widest text-[#f5ede0] uppercase">
-              The Athenaeum Archive
+            <h1 className="text-sm font-heading tracking-[-0.04em] text-[#f2f2f2] uppercase font-normal">
+              The Athenaeum
             </h1>
-            <p className="text-[10px] font-mono tracking-wider text-[#a89682]">
-              KANG YUCHEN • SPECIAL COLLECTIONS
+            <p className="text-[10px] font-eyebrow tracking-[0.20em] text-[#d6d3d1] uppercase">
+              Monograph Series // Vol. 2026
             </p>
           </div>
         </div>
 
-        {/* Center Department / Wing Indicator */}
-        <div className="hidden md:flex items-center gap-6 text-xs font-mono tracking-widest text-[#9c8975]">
-          <span className="flex items-center gap-1.5">
-            <Compass className="w-3.5 h-3.5 text-[#d4af37]" />
-            WING IV • COMPUTATIONAL MANUSCRIPTS
+        {/* Center Wing / Reading Status Indicator */}
+        <div className="hidden md:flex items-center gap-6 text-[11px] font-eyebrow tracking-[0.20em] text-[#d6d3d1]">
+          <span className="flex items-center gap-2">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#e1f7e1]" />
+            COLLECTION 01 • COMPUTATIONAL SYSTEMS
           </span>
-          <span className="flex items-center gap-1.5 text-[#a69480]">
-            <Clock className="w-3.5 h-3.5 text-[#d4af37]" />
-            READING ROOM: {currentTime || '18:50:00'}
+          <span className="text-[#31383b]">|</span>
+          <span className="tabular-nums font-body text-[#f2f2f2] font-medium tracking-normal text-xs">
+            UTC {currentTime || '12:00:00'}
           </span>
         </div>
 
-        {/* Right Volume Counter */}
+        {/* Right Publication Numbering */}
         <div className="flex items-center gap-2">
-          <span className="text-[11px] font-mono tracking-widest text-[#d4af37] bg-[#241c14] px-3 py-1.5 rounded border border-[#d4af37]/30">
-            VOL. {romanNumerals[activeIndex] || activeIndex + 1} OF {romanNumerals[books.length - 1] || books.length}
+          <span className="text-xs font-mono tracking-widest text-[#f2f2f2] bg-[#1f2527] px-3 py-1 rounded-sm border border-[#31383b]">
+            INDEX [{formatIndex(activeIndex)} / {formatIndex(books.length - 1)}]
           </span>
         </div>
       </header>
 
-      {/* MIDDLE SECTION: Selected Tome Catalog Card (Left) */}
+      {/* 2. MIDDLE SECTION: A24 Editorial Catalog Card (Bottom-Left) */}
       <div className="flex items-end justify-between pointer-events-none my-auto">
-        <aside className="pointer-events-auto max-w-sm sm:max-w-md bg-[#16120e]/85 backdrop-blur-md p-6 rounded-lg border border-[#d4af37]/30 shadow-2xl text-[#f4ecd8] space-y-4">
+        <aside className="pointer-events-auto max-w-sm sm:max-w-md bg-[#171c1c]/90 backdrop-blur-md p-6 rounded-sm border border-[#31383b] shadow-2xl text-[#f2f2f2] space-y-4">
           
-          {/* Card Header */}
-          <div className="flex items-center justify-between text-[10px] font-mono tracking-widest text-[#d4af37] border-b border-[#d4af37]/20 pb-2">
+          {/* Metadata Bar */}
+          <div className="flex items-center justify-between text-[10px] font-eyebrow tracking-[0.20em] text-[#d6d3d1] border-b border-[#31383b] pb-2.5">
             <span>{activeBook.callNumber}</span>
             <span>{activeBook.stackShelf}</span>
           </div>
 
-          <div>
-            <span className="inline-block px-2.5 py-0.5 rounded text-[10px] font-mono tracking-wider bg-[#d4af37]/15 text-[#e0bb56] border border-[#d4af37]/30 mb-2">
+          {/* Title & Category */}
+          <div className="space-y-2">
+            <span className="inline-block px-2.5 py-0.5 rounded-sm text-[10px] font-eyebrow tracking-[0.20em] bg-[#1f2527] text-[#f2f2f2] border border-[#31383b]">
               {activeBook.category.toUpperCase()}
             </span>
-            <h2 className="text-2xl sm:text-3xl font-serif font-bold text-[#f8f2e7] tracking-wide leading-tight">
+            <BalancedText
+              as="h2"
+              lines={2}
+              reserveLines={2}
+              className="text-2xl sm:text-3xl font-heading font-normal text-[#f2f2f2] tracking-[-0.04em] leading-[1.08]"
+            >
               {activeBook.title}
-            </h2>
-            <p className="text-sm font-serif italic text-[#baa894] mt-1">
+            </BalancedText>
+            <p className="text-sm font-body text-[#d6d3d1] tracking-[-0.025em]">
               “{activeBook.subtitle}”
             </p>
           </div>
 
-          <p className="text-xs font-serif leading-relaxed text-[#d1c2b0]">
+          {/* Synopsis */}
+          <p
+            className="text-xs sm:text-[13px] font-body leading-[1.5] text-[#d6d3d1] tracking-[-0.025em]"
+            data-reserve-lines="3"
+          >
             {activeBook.shortDescription}
           </p>
 
-          {/* Applied Technologies / Runes */}
+          {/* Applied Technologies */}
           <div className="flex flex-wrap gap-1.5 pt-1">
             {activeBook.techStack.map((tech, i) => (
               <span
                 key={i}
-                className="px-2 py-0.5 rounded text-[10px] font-mono bg-[#282119] text-[#c9b9a6] border border-[#403529]"
+                className="px-2 py-0.5 rounded-sm text-[10px] font-mono tracking-wider bg-[#1f2527] text-[#d6d3d1] border border-[#31383b]"
               >
                 {tech}
               </span>
@@ -133,18 +157,18 @@ export const LibraryUI: FC<LibraryUIProps> = ({
           <div className="pt-2 flex flex-wrap items-center gap-2.5">
             <button
               onClick={onOpenSpread}
-              className="flex items-center gap-2 px-4 py-2 rounded text-xs font-mono font-medium bg-[#d4af37] text-[#1c1409] hover:bg-[#e6c250] transition-colors shadow-lg cursor-pointer"
+              className="flex items-center gap-2 px-4 py-2 rounded-sm text-xs font-mono font-medium bg-[#f2f2f2] text-[#000000] hover:bg-white transition-all shadow-md cursor-pointer"
             >
               <BookOpen className="w-4 h-4" />
-              Open Tome [Enter]
+              Open Folio [Enter]
             </button>
 
             <button
               onClick={onToggleFlip}
-              className="flex items-center gap-2 px-3 py-2 rounded text-xs font-mono bg-[#241c14] text-[#e8dcba] border border-[#d4af37]/40 hover:bg-[#33281d] transition-colors cursor-pointer"
+              className="flex items-center gap-2 px-3.5 py-2 rounded-sm text-xs font-mono bg-[#171c1c] text-[#f2f2f2] border border-[#31383b] hover:border-[#891a20] hover:text-white transition-colors cursor-pointer"
             >
-              <RotateCw className="w-3.5 h-3.5" />
-              {isFlipped ? 'Show Front' : 'Flip to Spine [Space]'}
+              <RotateCw className={`w-3.5 h-3.5 transition-transform duration-300 ${isFlipped ? 'rotate-180 text-[#891a20]' : ''}`} />
+              {isFlipped ? 'Show Front' : 'Flip Spine [Space]'}
             </button>
 
             {activeBook.githubUrl && (
@@ -152,7 +176,7 @@ export const LibraryUI: FC<LibraryUIProps> = ({
                 href={activeBook.githubUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-2 rounded bg-[#241c14] text-[#e8dcba] border border-[#d4af37]/40 hover:bg-[#33281d] hover:text-[#d4af37] transition-colors"
+                className="p-2 rounded-sm bg-[#171c1c] text-[#d6d3d1] border border-[#31383b] hover:border-[#f2f2f2] hover:text-[#f2f2f2] transition-colors"
                 title="View Source on GitHub"
               >
                 <Github className="w-4 h-4" />
@@ -162,33 +186,33 @@ export const LibraryUI: FC<LibraryUIProps> = ({
         </aside>
       </div>
 
-      {/* BOTTOM BAR: Shelf Navigation & Keyboard Controls */}
-      <footer className="flex flex-col sm:flex-row items-center justify-between gap-4 pointer-events-auto border-t border-[#d4af37]/20 pt-4 backdrop-blur-sm bg-[#0e0c0a]/40 px-5 py-3 rounded-lg">
+      {/* 3. BOTTOM BAR: Shelf Navigation & Keyboard Controls */}
+      <footer className="flex flex-col sm:flex-row items-center justify-between gap-4 pointer-events-auto border-t border-[#31383b]/60 pt-3.5 backdrop-blur-md bg-[#171c1c]/60 px-5 py-3 rounded-sm">
         
-        {/* Navigation Arrows & Volume Selector */}
+        {/* Navigation Chevrons, Numeric Selector & Continuous Progress Track */}
         <div className="flex items-center gap-3">
           <button
             onClick={() => onSelectIndex(Math.max(0, activeIndex - 1))}
             disabled={activeIndex === 0}
-            className="p-2 rounded bg-[#241c14] border border-[#d4af37]/30 text-[#e8dcba] hover:bg-[#382b20] disabled:opacity-30 disabled:hover:bg-[#241c14] transition-colors cursor-pointer"
+            className="p-2 rounded-sm bg-[#171c1c] border border-[#31383b] text-[#f2f2f2] hover:border-[#891a20] hover:bg-[#1f2527] disabled:opacity-20 transition-colors cursor-pointer"
             title="Previous Tome (Left Arrow)"
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
 
-          {/* Roman numeral jump links */}
+          {/* Minimalist Two-Digit Jump Links */}
           <div className="flex items-center gap-1.5">
             {books.map((_, idx) => (
               <button
                 key={idx}
                 onClick={() => onSelectIndex(idx)}
-                className={`w-7 h-7 rounded text-xs font-mono transition-all cursor-pointer ${
+                className={`w-7 h-7 rounded-sm text-xs font-mono transition-all cursor-pointer ${
                   idx === activeIndex
-                    ? 'bg-[#d4af37] text-[#1c1409] font-bold shadow-md scale-105'
-                    : 'bg-[#1e1711] text-[#9c8975] hover:text-[#f0e4d0] hover:bg-[#2d231b] border border-[#3b2f23]'
+                    ? 'bg-[#f2f2f2] text-[#000000] font-bold shadow-sm'
+                    : 'bg-[#171c1c] text-[#d6d3d1] hover:text-white hover:bg-[#1f2527] border border-[#31383b]'
                 }`}
               >
-                {romanNumerals[idx] || idx + 1}
+                {formatIndex(idx)}
               </button>
             ))}
           </div>
@@ -196,30 +220,38 @@ export const LibraryUI: FC<LibraryUIProps> = ({
           <button
             onClick={() => onSelectIndex(Math.min(books.length - 1, activeIndex + 1))}
             disabled={activeIndex === books.length - 1}
-            className="p-2 rounded bg-[#241c14] border border-[#d4af37]/30 text-[#e8dcba] hover:bg-[#382b20] disabled:opacity-30 disabled:hover:bg-[#241c14] transition-colors cursor-pointer"
+            className="p-2 rounded-sm bg-[#171c1c] border border-[#31383b] text-[#f2f2f2] hover:border-[#891a20] hover:bg-[#1f2527] disabled:opacity-20 transition-colors cursor-pointer"
             title="Next Tome (Right Arrow)"
           >
             <ChevronRight className="w-4 h-4" />
           </button>
+
+          {/* Continuous Progress Indicator */}
+          <div className="hidden sm:block ml-2 w-20 h-1 bg-[#31383b] rounded-full overflow-hidden">
+            <div
+              className="h-full bg-[#891a20] transition-all duration-300"
+              style={{ width: `${progressRatio}%` }}
+            />
+          </div>
         </div>
 
-        {/* Keyboard and Gesture Shortcuts Guide */}
-        <div className="hidden lg:flex items-center gap-4 text-[11px] font-mono text-[#a89682]">
+        {/* Minimalist Keycap Badges */}
+        <div className="hidden lg:flex items-center gap-4 text-[11px] font-mono text-[#d6d3d1]">
           <span className="flex items-center gap-1">
-            <kbd className="px-1.5 py-0.5 rounded bg-[#221a13] border border-[#d4af37]/30 text-[#e8dcba]">←</kbd>
-            <kbd className="px-1.5 py-0.5 rounded bg-[#221a13] border border-[#d4af37]/30 text-[#e8dcba]">→</kbd>
+            <kbd className="px-1.5 py-0.5 rounded-sm bg-[#171c1c] border border-[#31383b] text-[#f2f2f2]">←</kbd>
+            <kbd className="px-1.5 py-0.5 rounded-sm bg-[#171c1c] border border-[#31383b] text-[#f2f2f2]">→</kbd>
             Browse
           </span>
           <span className="flex items-center gap-1">
-            <kbd className="px-2 py-0.5 rounded bg-[#221a13] border border-[#d4af37]/30 text-[#e8dcba]">Space</kbd>
+            <kbd className="px-2 py-0.5 rounded-sm bg-[#171c1c] border border-[#31383b] text-[#f2f2f2]">Space</kbd>
             Flip Spine
           </span>
           <span className="flex items-center gap-1">
-            <kbd className="px-2 py-0.5 rounded bg-[#221a13] border border-[#d4af37]/30 text-[#e8dcba]">Enter</kbd>
-            Open Tome
+            <kbd className="px-2 py-0.5 rounded-sm bg-[#171c1c] border border-[#31383b] text-[#f2f2f2]">Enter</kbd>
+            Open Folio
           </span>
-          <span className="flex items-center gap-1">
-            <span className="text-[#d4af37]">✦</span>
+          <span className="flex items-center gap-1.5 text-[#d6d3d1]">
+            <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#891a20]" />
             Drag / Scroll Shelf
           </span>
         </div>

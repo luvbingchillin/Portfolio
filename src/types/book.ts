@@ -19,3 +19,5 @@ export interface ProjectBook {
   liveUrl?: string;
   stackShelf: string;
 }
+
+export type Book = ProjectBook;

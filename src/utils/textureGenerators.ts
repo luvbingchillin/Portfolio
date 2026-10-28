@@ -138,6 +138,36 @@ export async function ensureFontsReady(timeoutMs = 1500): Promise<boolean> {
 // 5. Procedural Noise Generators (Sync & Time-Sliced Async)
 // ============================================================================
 
+let sharedNoisePatternCanvas: HTMLCanvasElement | null = null;
+
+function getNoisePattern(ctx: CanvasRenderingContext2D): CanvasPattern | null {
+  if (typeof document === 'undefined') return null;
+  if (!sharedNoisePatternCanvas) {
+    const size = 64;
+    sharedNoisePatternCanvas = document.createElement('canvas');
+    sharedNoisePatternCanvas.width = size;
+    sharedNoisePatternCanvas.height = size;
+    const nCtx = sharedNoisePatternCanvas.getContext('2d');
+    if (nCtx) {
+      try {
+        const img = nCtx.createImageData(size, size);
+        const d = img.data;
+        for (let i = 0; i < d.length; i += 4) {
+          const val = Math.floor(Math.random() * 255);
+          d[i] = val;
+          d[i + 1] = val;
+          d[i + 2] = val;
+          d[i + 3] = 32; // subtle ~12% alpha noise
+        }
+        nCtx.putImageData(img, 0, 0);
+      } catch {
+        // Fallback for mock environments
+      }
+    }
+  }
+  return ctx.createPattern ? ctx.createPattern(sharedNoisePatternCanvas, 'repeat') : null;
+}
+
 function addLeatherGrainSync(
   ctx: CanvasRenderingContext2D,
   width: number,
@@ -147,15 +177,14 @@ function addLeatherGrainSync(
   ctx.fillStyle = baseColor;
   ctx.fillRect(0, 0, width, height);
 
-  const imgData = ctx.getImageData(0, 0, width, height);
-  const data = imgData.data;
-  for (let i = 0; i < data.length; i += 4) {
-    const grain = (Math.random() - 0.5) * 18;
-    data[i] = Math.min(255, Math.max(0, data[i] + grain));
-    data[i + 1] = Math.min(255, Math.max(0, data[i + 1] + grain));
-    data[i + 2] = Math.min(255, Math.max(0, data[i + 2] + grain));
+  // Fast GPU pattern fill
+  const pattern = getNoisePattern(ctx);
+  if (pattern) {
+    ctx.save();
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, width, height);
+    ctx.restore();
   }
-  ctx.putImageData(imgData, 0, 0);
 
   const vignette = ctx.createRadialGradient(
     width / 2, height / 2, width * 0.35,
@@ -172,35 +201,10 @@ async function addLeatherGrainAsync(
   width: number,
   height: number,
   baseColor: string,
-  chunkSize = 350_000
+  _chunkSize = 350_000
 ): Promise<void> {
-  ctx.fillStyle = baseColor;
-  ctx.fillRect(0, 0, width, height);
-
-  const imgData = ctx.getImageData(0, 0, width, height);
-  const data = imgData.data;
-
-  for (let i = 0; i < data.length; i += chunkSize) {
-    const end = Math.min(i + chunkSize, data.length);
-    for (let j = i; j < end; j += 4) {
-      const grain = (Math.random() - 0.5) * 18;
-      data[j] = Math.min(255, Math.max(0, data[j] + grain));
-      data[j + 1] = Math.min(255, Math.max(0, data[j + 1] + grain));
-      data[j + 2] = Math.min(255, Math.max(0, data[j + 2] + grain));
-    }
-    await yieldToMain();
-  }
-
-  ctx.putImageData(imgData, 0, 0);
-
-  const vignette = ctx.createRadialGradient(
-    width / 2, height / 2, width * 0.35,
-    width / 2, height / 2, width * 0.8
-  );
-  vignette.addColorStop(0, 'rgba(0, 0, 0, 0)');
-  vignette.addColorStop(1, 'rgba(0, 0, 0, 0.55)');
-  ctx.fillStyle = vignette;
-  ctx.fillRect(0, 0, width, height);
+  addLeatherGrainSync(ctx, width, height, baseColor);
+  await yieldToMain();
 }
 
 // ============================================================================

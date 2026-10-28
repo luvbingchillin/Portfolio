@@ -118,14 +118,15 @@ export const Preloader: FC<PreloaderProps> = ({
   // Animation frame loop driving theatrical minimum duration and external progress synchronization
   useEffect(() => {
     const startTime = Date.now();
+    const maxSafetyTimeoutMs = 3800; // Guaranteed completion guard
     let animId: number;
 
     const tick = () => {
       const now = Date.now();
       const elapsed = now - startTime;
 
-      // Theatrical time-based progress [0, 100]
-      const timeProgress = Math.min(100, (elapsed / minDurationMs) * 100);
+      // Theatrical time-based progress [0, 99]
+      const timeProgress = Math.min(99, (elapsed / minDurationMs) * 100);
 
       // Real pipeline progress (defaults to timeProgress if externalProgress is undefined)
       const ext = externalProgressRef.current;
@@ -133,23 +134,19 @@ export const Preloader: FC<PreloaderProps> = ({
         ? Math.max(0, Math.min(100, ext))
         : timeProgress;
 
-      // Displayed progress must satisfy monotonic progression and theatrical minimum duration
-      setCurrentProgress((prev) => {
-        // If assets finished early, advance with timeProgress up to 100%
-        // If assets take longer than minDuration, clamp to realProgress
-        const target = realProgress >= 100
-          ? Math.min(100, timeProgress)
-          : Math.min(realProgress, timeProgress);
+      // Ensure progress ALWAYS rolls forward smoothly:
+      // It steadily advances with time up to 99%, or jumps ahead if real progress is faster
+      const target = Math.max(timeProgress, realProgress);
 
-        return Math.max(prev, target);
-      });
+      setCurrentProgress((prev) => Math.max(prev, target));
 
-      // Completion Condition: Progress is 100% AND elapsed >= minDuration
-      if (
-        realProgress >= 100 &&
-        elapsed >= minDurationMs &&
-        !completedRef.current
-      ) {
+      // Completion Condition: Progress reaches 100% and elapsed >= minDurationMs,
+      // OR safety timeout reached (guarantees the user is never stuck indefinitely)
+      const isComplete =
+        (realProgress >= 100 && elapsed >= minDurationMs) ||
+        (elapsed >= maxSafetyTimeoutMs);
+
+      if (isComplete && !completedRef.current) {
         completedRef.current = true;
         setCurrentProgress(100);
         setIsExiting(true);

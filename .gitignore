@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Preloader Explanation (Local Archival Documentation)
+docs/preloader-explanation.md
+

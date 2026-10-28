@@ -101,6 +101,9 @@ export function applyTextBalancing(rootElement: HTMLElement | Document = documen
     const rawText = el.getAttribute('data-balance-source') || (el.textContent || '').replace(/\s+/g, ' ').trim();
     if (!rawText) return;
 
+    // Guard against redundant DOM mutations and infinite loops
+    if (el.getAttribute('data-balance-applied') === rawText) return;
+
     el.setAttribute('data-balance-source', rawText);
     const words = rawText.split(' ');
     if (words.length < 2) return;
@@ -118,6 +121,7 @@ export function applyTextBalancing(rootElement: HTMLElement | Document = documen
     });
 
     el.replaceChildren(...spans);
+    el.setAttribute('data-balance-applied', rawText);
   });
 }
 
@@ -169,10 +173,15 @@ export function initEditorialTypography(root: HTMLElement | Document = document)
     });
   }
 
+  let isMutating = false;
   const observer = typeof MutationObserver !== 'undefined'
     ? new MutationObserver((mutations) => {
+        if (isMutating) return;
         let shouldUpdate = false;
         for (const m of mutations) {
+          if (m.target instanceof HTMLElement && (m.target.hasAttribute('data-balance-line') || m.target.hasAttribute('data-balance-applied'))) {
+            continue;
+          }
           if (
             m.type === 'childList' ||
             (m.type === 'attributes' &&
@@ -183,8 +192,13 @@ export function initEditorialTypography(root: HTMLElement | Document = document)
           }
         }
         if (shouldUpdate) {
-          applyTextBalancing(root);
-          applyLineReservation(root);
+          isMutating = true;
+          try {
+            applyTextBalancing(root);
+            applyLineReservation(root);
+          } finally {
+            isMutating = false;
+          }
         }
       })
     : null;
@@ -279,6 +293,7 @@ export const BalancedText: React.FC<BalancedTextProps> = ({
       'data-reserve-lines': reserve > 0 ? reserve : undefined,
       'data-reserve-active': reserve > 0 ? 'true' : undefined,
       'data-balance-source': typeof children === 'string' ? children : undefined,
+      'data-balance-applied': typeof children === 'string' ? children : 'true',
       style: reserveStyle,
       className,
       ...rest,

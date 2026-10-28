@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { FC } from 'react';
 import type { ProjectBook } from '../types/book';
-import { BalancedText, initEditorialTypography } from '../utils/textBalance';
+import { BalancedText } from '../utils/textBalance';
 import {
   BookOpen,
   RotateCw,
@@ -54,10 +54,6 @@ export const LibraryUI: FC<LibraryUIProps> = ({
     return () => clearInterval(interval);
   }, []);
 
-  // Initialize and observe typography balance
-  useEffect(() => {
-    return initEditorialTypography();
-  }, []);
 
   // Format indices with leading zero (e.g., 01, 02)
   const formatIndex = (n: number) => (n < 9 ? `0${n + 1}` : `${n + 1}`);

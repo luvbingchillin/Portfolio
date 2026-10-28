@@ -87,6 +87,7 @@ export const Preloader: FC<PreloaderProps> = ({
   useEffect(() => {
     const startTime = performance.now();
     let animId: number;
+    let intervalId: ReturnType<typeof setInterval>;
 
     const tick = (now: number) => {
       const elapsed = Math.max(0, now - startTime);
@@ -105,6 +106,8 @@ export const Preloader: FC<PreloaderProps> = ({
       // Completion Condition: 100% reached
       if (target >= 100 && !completedRef.current) {
         completedRef.current = true;
+        clearInterval(intervalId);
+        cancelAnimationFrame(animId);
         setCurrentProgress(100);
         setIsExiting(true);
 
@@ -120,7 +123,17 @@ export const Preloader: FC<PreloaderProps> = ({
     };
 
     animId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(animId);
+    // Reliable 30ms timer fallback to guarantee smooth progression even if rAF is delayed or tab is in background
+    intervalId = setInterval(() => {
+      if (!completedRef.current) {
+        tick(performance.now());
+      }
+    }, 30);
+
+    return () => {
+      cancelAnimationFrame(animId);
+      clearInterval(intervalId);
+    };
   }, [minDurationMs, revealDurationMs]);
 
   const displayValue = Math.min(100, Math.floor(currentProgress));

@@ -10,7 +10,7 @@ export function App() {
   const [isFlipped, setIsFlipped] = useState(false);
   const [isSpreadOpen, setIsSpreadOpen] = useState(false);
 
-  // Milestone 2 Preloader & Boot Sequence State
+  // Preloader & Boot Sequence State
   const [isLoaded, setIsLoaded] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
   const [isPreloaderMounted, setIsPreloaderMounted] = useState(true);
@@ -23,22 +23,15 @@ export function App() {
     }, 1150);
   }, []);
 
-  // Keyboard navigation
+  // Keyboard navigation (arrow keys only — flip and open are now mouse/click driven)
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
-      // Ignore if modal is open or preloader is active
       if (isSpreadOpen || !isLoaded) return;
 
       if (e.key === 'ArrowLeft') {
         setActiveIndex((prev) => Math.max(0, prev - 1));
       } else if (e.key === 'ArrowRight') {
         setActiveIndex((prev) => Math.min(BOOKS_CATALOG.length - 1, prev + 1));
-      } else if (e.code === 'Space') {
-        e.preventDefault();
-        setIsFlipped((prev) => !prev);
-      } else if (e.key === 'Enter') {
-        e.preventDefault();
-        setIsSpreadOpen(true);
       }
     },
     [isSpreadOpen, isLoaded]
@@ -63,16 +56,17 @@ export function App() {
     setIsSpreadOpen(false);
   }, []);
 
+  const handleFlip = useCallback((flipped: boolean) => {
+    setIsFlipped(flipped);
+  }, []);
+
   const handleToggleFlip = useCallback(() => {
     setIsFlipped((prev) => !prev);
   }, []);
 
   return (
-    <main className="relative w-screen h-screen overflow-hidden bg-[#171c1c] text-[#f2f2f2] font-body">
-      {/* Background Library Atmosphere: Subtle warm dark vignette */}
-      <div className="absolute inset-0 pointer-events-none opacity-40 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-[#31383b]/30 via-[#1f2527]/60 to-[#171c1c]" />
-
-      {/* 3D WebGL Library Scene (Three.js Canvas) - Mounted immediately under preloader for GPU warming */}
+    <main className="relative w-screen h-screen overflow-hidden bg-white text-[#171c1c] font-body">
+      {/* 3D WebGL Library Scene */}
       <LibraryScene
         books={BOOKS_CATALOG}
         activeIndex={activeIndex}
@@ -81,9 +75,10 @@ export function App() {
         onProgress={setLoadProgress}
         onSelectBook={handleSelectIndex}
         onOpenSpread={handleOpenSpread}
+        onFlip={handleFlip}
       />
 
-      {/* Stylized Dark Split-Drum Odometer Preloader Screen */}
+      {/* Preloader Screen */}
       {isPreloaderMounted && (
         <Preloader
           externalProgress={loadProgress}
@@ -91,7 +86,7 @@ export function App() {
         />
       )}
 
-      {/* Library UI Overlay - Smoothly revealed as preloader completes */}
+      {/* Library UI Overlay */}
       <div className={`transition-opacity duration-700 ${isLoaded ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
         <LibraryUI
           books={BOOKS_CATALOG}
@@ -100,10 +95,11 @@ export function App() {
           onSelectIndex={handleSelectIndex}
           onToggleFlip={handleToggleFlip}
           onOpenSpread={handleOpenSpread}
+          isModalOpen={isSpreadOpen}
         />
       </div>
 
-      {/* Two-Page Archival Reading Spread (Opened Tome Modal) */}
+      {/* Two-Page Archival Reading Spread */}
       {isSpreadOpen && (
         <BookDetailModal
           book={BOOKS_CATALOG[activeIndex]}

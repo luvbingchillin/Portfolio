@@ -1,0 +1,77 @@
+/* ==========================================================================
+ * TOP-RIGHT EDITORIAL INFORMATION SECTION (A24 experience_info)
+ * Specifications matching tests/tier1-features/r2-info-section.test.ts
+ * ========================================================================== */
+
+.experience_info {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  pointer-events: none;
+  user-select: none;
+}
+
+.experience_info.top-right {
+  position: absolute;
+  top: 2rem;
+  right: 2rem;
+  max-width: 22rem; /* Approx 20.8% at 1440px desktop */
+  width: calc(100% - 4rem);
+}
+
+.experience_info.z-20 {
+  z-index: 20;
+}
+
+@media (max-width: 991px) {
+  .experience_info.top-right {
+    top: 1.25rem;
+    right: 1.25rem;
+    max-width: min(calc(100vw - 2.5rem), 19rem);
+    width: auto;
+  }
+}
+
+/* Hairline horizontal divider rule: 0.5px black */
+.divider-horizontal.top {
+  position: absolute;
+  inset: 0% 0% auto;
+  width: 100%;
+  height: 0.5px;
+  background-color: #000000;
+  will-change: transform;
+}
+
+/* Masked transition containers */
+[data-disc-mask] {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Display serif title: PPEiko, tracking -0.04em */
+.heading-s.custom-element {
+  font-family: var(--font-heading);
+  letter-spacing: var(--tracking-heading, -0.04em);
+  text-transform: uppercase;
+  color: #000000;
+  will-change: transform;
+}
+
+/* Metadata eyebrow labels: PPMuseum, tracking 0.20em */
+.subheading-xs.custom-element {
+  font-family: var(--font-eyebrow);
+  letter-spacing: var(--tracking-eyebrow, 0.20em);
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  color: var(--color-stone-600, #57534e);
+  will-change: transform;
+}
+
+/* Metadata values: PPNeueMontreal, tracking -0.025em */
+.paragraph-m.text-align-right.custom-element {
+  font-family: var(--font-body);
+  letter-spacing: var(--tracking-body, -0.025em);
+  text-align: right;
+  color: #000000;
+  will-change: transform;
+}

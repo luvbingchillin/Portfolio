@@ -1,0 +1,553 @@
+--- a/src/index.css
++++ b/src/index.css
+@@ -686,11 +686,220 @@
+ /* 7. Dedicated A24 Navigation & Editorial Component Styles */
+-.nav-page-dot {
+-  width: 5px;
+-  height: 5px;
+-  border-radius: 9999px;
+-  background-color: #891a20;
+-  transition: transform 0.3s cubic-bezier(0.25, 1, 0.5, 1);
+-}
++
++/* --- Top-Middle Navigation Bar (A24 Reference) --- */
++.nav {
++  --nav-open-height: 24em;
++  --nav-scroll-fade: 3em;
++  --nav-ease: cubic-bezier(0.32, 0.72, 0, 1);
++  --nav-open-duration: 0.62s;
++  --nav-close-duration: 0.46s;
++  --nav-active-bg: var(--color-eerie-black, #171c1c);
++  --nav-active-text: #ffffff;
++  --nav-dot-gap: 0.3em;
++  --nav-dot-size: 0.3em;
++  --nav-width: 28em;
++
++  position: fixed;
++  top: 0;
++  left: 0;
++  right: 0;
++  width: 100%;
++  z-index: 100;
++  pointer-events: none;
++}
++
++.nav-container {
++  z-index: 1;
++  width: 100%;
++  max-width: 100%;
++  margin-left: auto;
++  margin-right: auto;
++  padding-left: 3em;
++  padding-right: 3em;
++  position: relative;
++  pointer-events: none;
++}
++
++.nav-inner {
++  width: 100%;
++  padding-top: 0.5em;
++  display: flex;
++  justify-content: center;
++  align-items: center;
++  position: relative;
++  pointer-events: auto;
++}
++
++.nav-center {
++  position: relative;
++  display: flex;
++  justify-content: center;
++  align-items: center;
++}
++
++.nav-center__list {
++  display: flex;
++  justify-content: center;
++  align-items: center;
++  gap: 0;
++  margin: 0;
++  padding: 0;
++  list-style: none;
++  position: relative;
++}
++
++.nav-center__list > li {
++  display: flex;
++  align-items: center;
++  list-style: none;
++}
++
++.nav-logo {
++  padding: 0.5em 1em;
++  display: inline-flex;
++  align-items: center;
++  justify-content: center;
++  color: var(--text-primary, #171c1c);
++  text-decoration: none;
++  position: relative;
++  z-index: 2;
++  cursor: pointer;
++  transition: opacity 0.3s var(--nav-ease);
++}
++
++.nav-logo:hover {
++  opacity: 0.7;
++}
++
++.nav-link {
++  position: relative;
++  z-index: 2;
++  display: inline-flex;
++  align-items: center;
++  justify-content: center;
++  gap: 0.375em;
++  padding: 0.5em 1em;
++  background-color: transparent;
++  border: none;
++  border-radius: 0.25em;
++  color: var(--text-primary, #171c1c);
++  font-family: var(--font-body, 'Ppneuemontreal', Arial, sans-serif);
++  font-size: 0.8125rem;
++  font-weight: 500;
++  letter-spacing: var(--tracking-body, -0.025em);
++  text-decoration: none;
++  cursor: pointer;
++  user-select: none;
++  transition: opacity 0.3s var(--nav-ease), color 0.3s var(--nav-ease);
++}
++
++.nav-link:focus-visible {
++  outline: 2px solid var(--color-brand, #891a20);
++  outline-offset: 2px;
++}
++
++.nav-link[data-nav-page="current"] {
++  opacity: 1;
++  color: var(--text-primary, #171c1c);
++}
++
++.nav-link[data-nav-page="other"] {
++  opacity: 0.6;
++  color: var(--text-primary, #171c1c);
++}
++
++.nav-link[data-nav-page="other"]:hover {
++  opacity: 1;
++}
++
++.nav-link__label {
++  display: inline-flex;
++  align-items: center;
++  position: relative;
++  line-height: 1;
++  font-family: inherit;
++  font-weight: inherit;
++  letter-spacing: inherit;
++}
++
++[data-nav-label-track] {
++  position: relative;
++  display: inline-grid;
++  place-items: center;
++  overflow: hidden;
++  height: 1.2em;
++}
++
++[data-nav-label-item="word"],
++[data-nav-label-item="count"] {
++  display: inline-block;
++  will-change: transform;
++  transition: transform var(--nav-open-duration) var(--nav-ease);
++  grid-area: 1 / 1;
++}
++
++[data-nav-label-item="word"] { transform: translate(0px, 0px); }
++[data-nav-label-item="count"] { transform: translate(0%, 130%); }
++[data-dropdown-toggle="open"] [data-nav-label-item="word"],
++.nav[data-nav-dropdown="open"] [data-nav-label-item="word"] { transform: translate(0px, -130%); }
++[data-dropdown-toggle="open"] [data-nav-label-item="count"],
++.nav[data-nav-dropdown="open"] [data-nav-label-item="count"] { transform: translate(0%, 0%); }
++
++.nav-link__dropdown-icon {
++  width: 0.75em;
++  height: 0.44em;
++  flex-shrink: 0;
++  stroke: currentColor;
++  transform: rotate(0deg);
++  transform-origin: center;
++  transition: transform var(--nav-open-duration) var(--nav-ease);
++}
++
++[data-dropdown-toggle="open"] .nav-link__dropdown-icon,
++.nav[data-nav-dropdown="open"] .nav-link__dropdown-icon {
++  transform: rotate(180deg);
++}
++
++.nav-page-dot {
++  --nav-dot-size: 0.3em;
++  width: var(--nav-dot-size);
++  height: var(--nav-dot-size);
++  margin-left: calc(var(--nav-dot-size) / -2);
++  opacity: 0;
++  pointer-events: none;
++  will-change: transform;
++  transition: opacity 0.2s var(--nav-ease), transform 0.5s var(--nav-ease);
++  background-color: var(--color-brand, #891a20);
++  border-radius: 50%;
++  position: absolute;
++  top: 0;
++  left: 0;
++  z-index: 3;
++}
++
++.nav-bg {
++  position: absolute;
++  top: 0;
++  left: 0;
++  right: 0;
++  width: var(--nav-width, 28em);
++  height: 0px;
++  margin-left: auto;
++  margin-right: auto;
++  background-color: #ffffff;
++  border-radius: 0.75em;
++  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
++  border: 1px solid rgba(0, 0, 0, 0.08);
++  pointer-events: none;
++  visibility: hidden;
++  opacity: 0;
++  will-change: height, opacity;
++  transition: height var(--nav-close-duration) var(--nav-ease),
++              opacity calc(var(--nav-close-duration) * 0.6) var(--nav-ease),
++              visibility 0s linear calc(var(--nav-close-duration) * 0.6);
++  z-index: 1;
++}
++
++.nav[data-nav-dropdown="open"] .nav-bg,
++[data-dropdown-toggle="open"] ~ .nav-bg {
++  height: var(--nav-open-height, 24em);
++  visibility: visible;
++  opacity: 1;
++  transition: height var(--nav-open-duration) var(--nav-ease),
++              opacity calc(var(--nav-open-duration) * 0.45) var(--nav-ease),
++              visibility 0s;
++}
++
++.nav-dropdown {
++  position: absolute;
++  top: 0;
++  left: 50%;
++  transform: translateX(-50%);
++  width: var(--nav-width, 28em);
++  height: 0px;
++  box-sizing: border-box;
++  opacity: 0;
++  visibility: hidden;
++  pointer-events: none;
++  overflow: hidden;
++  z-index: 2;
++  padding-top: 2.75em;
++  padding-bottom: 0.75em;
++  transition: height var(--nav-close-duration) var(--nav-ease),
++              opacity calc(var(--nav-close-duration) * 0.6) var(--nav-ease),
++              visibility 0s linear calc(var(--nav-close-duration) * 0.6);
++}
++
++[data-dropdown-toggle="open"] + .nav-dropdown,
++.nav[data-nav-dropdown="open"] .nav-dropdown {
++  height: var(--nav-open-height, 24em);
++  opacity: 1;
++  visibility: visible;
++  pointer-events: auto;
++  transition: height var(--nav-open-duration) var(--nav-ease),
++              opacity calc(var(--nav-open-duration) * 0.45) var(--nav-ease),
++              visibility 0s;
++}
++
++.nav-dropdown__overflow,
++.nav-dropdown__overflow-inner {
++  height: 100%;
++  min-height: 0;
++  overflow: hidden;
++}
++
++.nav-dropdown__content {
++  --nav-fade-top: 0;
++  --nav-fade-bottom: 0;
++  width: 100%;
++  height: 100%;
++  min-height: 0;
++  display: block;
++  position: relative;
++  overflow-x: hidden;
++  overflow-y: auto;
++  scrollbar-width: none;
++  overscroll-behavior-y: contain;
++  touch-action: pan-y;
++  pointer-events: auto;
++  mask-image: linear-gradient(
++    to bottom,
++    transparent 0,
++    #000 calc(var(--nav-scroll-fade, 3em) * var(--nav-fade-top, 0)),
++    #000 calc(100% - (var(--nav-scroll-fade, 3em) * var(--nav-fade-bottom, 0))),
++    transparent 100%
++  );
++  -webkit-mask-image: linear-gradient(
++    to bottom,
++    transparent 0,
++    #000 calc(var(--nav-scroll-fade, 3em) * var(--nav-fade-top, 0)),
++    #000 calc(100% - (var(--nav-scroll-fade, 3em) * var(--nav-fade-bottom, 0))),
++    transparent 100%
++  );
++}
++
++.nav-dropdown__content::-webkit-scrollbar {
++  display: none;
++  width: 0;
++  height: 0;
++}
++
++.nav-dropdown__content-li {
++  display: flex;
++  flex-direction: column;
++  gap: 0.125em;
++  padding: 0.5em 1em;
++  list-style: none;
++  margin: 0;
++}
++
++.nav-dropdown__content-li > div,
++.nav-dropdown__content-li > li {
++  list-style: none;
++  width: 100%;
++}
++
++.nav-dropdown__link {
++  position: relative;
++  display: flex;
++  align-items: center;
++  width: 100%;
++  min-width: 0;
++  padding: 0.625em 0.875em;
++  border-radius: 0.375em;
++  text-decoration: none;
++  color: var(--text-primary, #171c1c);
++  cursor: pointer;
++  pointer-events: auto;
++  overflow: hidden;
++  user-select: none;
++  transition: color 0.25s var(--nav-ease);
++}
++
++.nav-dropdown__link-bg {
++  position: absolute;
++  inset: 0;
++  background-color: var(--nav-active-bg, #171c1c);
++  pointer-events: none;
++  border-radius: 0.375em;
++  z-index: 0;
++  will-change: transform;
++  transform-origin: 50% 100%;
++  transform: scaleY(0);
++  transition: transform 0.34s var(--nav-ease);
++}
++
++.nav-dropdown__link:hover .nav-dropdown__link-bg,
++.nav-dropdown__link[data-book-status="active"] .nav-dropdown__link-bg,
++.nav-dropdown__link[aria-current="true"] .nav-dropdown__link-bg,
++.nav-dropdown__link:focus-visible .nav-dropdown__link-bg {
++  transform: scaleY(1);
++}
++
++.nav-dropdown__link:hover,
++.nav-dropdown__link[data-book-status="active"],
++.nav-dropdown__link[aria-current="true"],
++.nav-dropdown__link:focus-visible {
++  color: var(--nav-active-text, #ffffff);
++}
++
++.nav-dropdown__link-inner {
++  position: relative;
++  z-index: 1;
++  display: flex;
++  justify-content: space-between;
++  align-items: center;
++  width: 100%;
++  min-width: 0;
++  pointer-events: none;
++}
++
++.nav-dropdown__link-label {
++  font-family: var(--font-body, 'Ppneuemontreal', Arial, sans-serif);
++  font-size: 0.875rem;
++  font-weight: 500;
++  line-height: 1.4;
++  letter-spacing: var(--tracking-body, -0.025em);
++  color: inherit;
++  margin: 0;
++  padding: 0;
++  white-space: nowrap;
++  overflow: hidden;
++  text-overflow: ellipsis;
++  flex: 0 1 auto;
++  padding-right: 0.75em;
++}
++
++[data-nav-year-mask] {
++  position: relative;
++  display: inline-block;
++  overflow: hidden;
++  flex: 0 0 auto;
++  line-height: 1.4;
++}
++
++[data-nav-year-mask] > .nav-dropdown__link-label {
++  display: inline-block;
++  font-variant-numeric: tabular-nums;
++  color: inherit;
++  opacity: 0.7;
++  transform: translate(0%, 125%);
++  transition: transform 0.26s var(--nav-ease), opacity 0.26s var(--nav-ease);
++}
++
++.nav-dropdown__link:hover [data-nav-year-mask] > .nav-dropdown__link-label,
++.nav-dropdown__link[data-book-status="active"] [data-nav-year-mask] > .nav-dropdown__link-label,
++.nav-dropdown__link[aria-current="true"] [data-nav-year-mask] > .nav-dropdown__link-label,
++.nav-dropdown__link:focus-visible [data-nav-year-mask] > .nav-dropdown__link-label {
++  transform: translate(0%, 0%);
++  opacity: 1;
++}
++
++.nav-dropdown__scrollbar {
++  position: absolute;
++  top: 3.5em;
++  right: 0.5em;
++  bottom: 1em;
++  width: 3px;
++  background-color: rgba(0, 0, 0, 0.05);
++  border-radius: 9999px;
++  opacity: 0;
++  pointer-events: none;
++  transition: opacity 0.3s var(--nav-ease);
++  z-index: 3;
++}
++
++.nav[data-nav-dropdown="open"] .nav-dropdown__scrollbar {
++  opacity: 1;
++}
++
++.nav-dropdown__scrollbar-progress {
++  width: 100%;
++  background-color: var(--color-stone-600, #57534e);
++  border-radius: 9999px;
++  will-change: transform, height;
++}
++
++@media (max-width: 991px) {
++  .nav {
++    --nav-dock-height: 3.5em;
++    --nav-dock-inset: 1em;
++    --nav-dock-radius: 0.75em;
++    --nav-open-height: min(25em, 62vh);
++    --nav-dock-list-gap: 2.25em;
++    --nav-dock-open-width: min(calc(100vw - 2em), 28em);
++
++    position: fixed;
++    top: auto;
++    bottom: 0px;
++    padding-left: var(--nav-dock-inset);
++    padding-right: var(--nav-dock-inset);
++    padding-bottom: calc(var(--nav-dock-inset) + env(safe-area-inset-bottom, 0px));
++  }
++
++  .nav-container {
++    padding-left: 0;
++    padding-right: 0;
++  }
++
++  .nav-inner {
++    z-index: 2;
++    height: var(--nav-dock-height);
++    align-items: center;
++    padding-top: 0px;
++  }
++
++  .nav-bg {
++    width: var(--nav-dock-open-width, 24em);
++    max-width: 100%;
++    height: var(--nav-dock-height);
++    border-radius: var(--nav-dock-radius);
++    inset: auto auto 0% 50%;
++    transform: translateX(-50%);
++    transition: height var(--nav-close-duration) var(--nav-ease),
++                width var(--nav-close-duration) var(--nav-ease);
++  }
++
++  .nav[data-nav-dropdown="open"] .nav-bg,
++  [data-dropdown-toggle="open"] ~ .nav-bg {
++    height: var(--nav-open-height);
++    width: var(--nav-dock-open-width);
++  }
++
++  .nav-center {
++    width: 100%;
++    height: auto;
++    position: static;
++    transform: none;
++  }
++
++  .nav-center__list {
++    width: 100%;
++    height: auto;
++    flex-direction: row;
++    justify-content: center;
++    align-items: center;
++    gap: 0.25em;
++    padding-top: 0px;
++    overflow: visible;
++  }
++
++  .nav-link {
++    padding: 0.35em 0.75em;
++  }
++
++  .nav-dropdown {
++    width: var(--nav-dock-open-width, 24em);
++    max-width: 100%;
++    margin: 0;
++    position: absolute;
++    inset: auto auto 100% 50%;
++    transform: translateX(-50%);
++    padding: 0 0 var(--nav-dock-list-gap);
++    border-radius: var(--nav-dock-radius) var(--nav-dock-radius) 0 0;
++  }
++
++  [data-dropdown-toggle="open"] + .nav-dropdown,
++  .nav[data-nav-dropdown="open"] .nav-dropdown {
++    height: calc(var(--nav-open-height) - var(--nav-dock-height));
++  }
++
++  .nav-dropdown__content {
++    padding-top: 1.5em;
++    padding-bottom: 0.75em;
++  }
++
++  .nav-dropdown__content-li {
++    max-width: 20em;
++    margin-left: auto;
++    margin-right: auto;
++    padding: 0 0.5em;
++  }
++
++  .nav-link__dropdown-icon {
++    transform: rotate(180deg);
++  }
++
++  [data-dropdown-toggle="open"] .nav-link__dropdown-icon,
++  .nav[data-nav-dropdown="open"] .nav-link__dropdown-icon {
++    transform: rotate(0deg);
++  }
++}
+
+ .divider-horizontal {

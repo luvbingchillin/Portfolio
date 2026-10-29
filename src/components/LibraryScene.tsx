@@ -22,6 +22,7 @@ export interface LibrarySceneProps {
   onReady?: () => void;
   onSelectBook: (index: number) => void;
   onOpenSpread: () => void;
+  onFlip?: (flipped: boolean) => void;
 }
 
 export const LibraryScene: FC<LibrarySceneProps> = ({
@@ -32,7 +33,8 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
   onProgress,
   onReady,
   onSelectBook,
-  onOpenSpread
+  onOpenSpread,
+  onFlip
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const isLoadedRef = useRef(Boolean(isLoaded));
@@ -46,6 +48,8 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
   onProgressRef.current = onProgress;
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
+  const onFlipRef = useRef(onFlip);
+  onFlipRef.current = onFlip;
 
   const requestRenderRef = useRef<(frames?: number) => void>(() => {});
 
@@ -64,20 +68,35 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
     flipStartTime: 0,
     flipDurationMs: 1050,
     isFlipping: false,
+    // Tilt (vertical) animation state
+    tiltAngle: 0,
+    tiltTargetAngle: 0,
+    tiltStartAngle: 0,
+    tiltStartTime: 0,
+    tiltDurationMs: 1050,
+    isTilting: false,
     isDragging: false,
     dragStartX: 0,
     dragStartScroll: 0,
     lastDragX: 0,
+    lastDragY: 0,
     dragDelta: 0,
     mouseX: 0,
     mouseY: 0,
-    booksCount: books.length
+    booksCount: books.length,
+    // dragMode: 'scroll' browses shelf, 'rotate' spins active book
+    dragMode: 'scroll' as 'scroll' | 'rotate',
   });
+
+
+
 
   // Keep references synced
   useEffect(() => {
     stateRef.current.activeIndex = activeIndex;
     stateRef.current.targetScroll = activeIndex;
+    // Reset tilt when switching books
+    stateRef.current.tiltAngle = 0;
     requestRenderRef.current(20);
   }, [activeIndex]);
 
@@ -118,7 +137,7 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
 
     // --- 1. Scene, Camera, Renderer ---
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0x171c1c, 0.055);
+    scene.fog = new THREE.FogExp2(0xffffff, 0.032);
 
     const initialWidth = container.clientWidth || window.innerWidth;
     const initialHeight = container.clientHeight || window.innerHeight;
@@ -136,27 +155,27 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
     renderer.setSize(initialWidth, initialHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.05;
+    renderer.toneMappingExposure = 1.02;
     container.appendChild(renderer.domElement);
 
-    // --- 2. Atmospheric Library Lighting Rig ---
-    // Warm reading lamp key light
-    const keyLight = new THREE.DirectionalLight(0xffecd2, 1.4);
+    // --- 2. Studio Lighting Rig (Pure White Theming) ---
+    // Key directional light: crisp specular highlights on gold foil typography
+    const keyLight = new THREE.DirectionalLight(0xfff8f0, 1.25);
     keyLight.position.set(3.5, 4.0, 4.5);
     scene.add(keyLight);
 
-    // Soft amber desk glow
-    const deskGlow = new THREE.PointLight(0xffb042, 1.8, 12, 1.2);
+    // Soft warm desk fill: gentle illumination on lower book boards and brass shelf inlay
+    const deskGlow = new THREE.PointLight(0xffecd2, 0.9, 12, 1.4);
     deskGlow.position.set(0, 1.8, 2.2);
     scene.add(deskGlow);
 
-    // High library clerestory window rim light
-    const rimLight = new THREE.DirectionalLight(0x7da4d9, 0.65);
+    // Cool rim light: crisp silhouette separation between dark leather spines and white background
+    const rimLight = new THREE.DirectionalLight(0x94b4dc, 0.55);
     rimLight.position.set(-4.0, 3.5, -3.0);
     scene.add(rimLight);
 
-    // Deep ambient tone
-    const ambientLight = new THREE.AmbientLight(0x281c12, 0.55);
+    // Clean studio ambient light: lifts deep leather tones and prevents muddy shadows on white
+    const ambientLight = new THREE.AmbientLight(0xfdfbf7, 0.85);
     scene.add(ambientLight);
 
     // --- 3. Mahogany Library Shelf Base ---
@@ -445,15 +464,26 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
       }
 
       // 4. Smooth 1.05s Flip Rotation with Smoothstep S-curve
+      // Horizontal flip interpolation
       if (state.isFlipping) {
         const elapsed = now - state.flipStartTime;
         const tau = Math.min(1.0, elapsed / state.flipDurationMs);
         const smoothTau = tau * tau * (3 - 2 * tau);
         state.flipAngle = state.flipStartAngle + (state.flipTargetAngle - state.flipStartAngle) * smoothTau;
-
         if (tau >= 1.0) {
           state.flipAngle = state.flipTargetAngle;
           state.isFlipping = false;
+        }
+      }
+      // Vertical tilt interpolation
+      if (state.isTilting) {
+        const elapsed = now - state.tiltStartTime;
+        const tau = Math.min(1.0, elapsed / state.tiltDurationMs);
+        const smoothTau = tau * tau * (3 - 2 * tau);
+        state.tiltAngle = state.tiltStartAngle + (state.tiltTargetAngle - state.tiltStartAngle) * smoothTau;
+        if (tau >= 1.0) {
+          state.tiltAngle = state.tiltTargetAngle;
+          state.isTilting = false;
         }
       }
 
@@ -552,7 +582,7 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
         if (isActive) {
           // Center Active Tome: flip angle + mouse sway + banked tilt
           group.rotation.y = state.flipAngle + swayX + flowBank * 0.70;
-          group.rotation.x = -swayY + flowLean;
+          group.rotation.x = -swayY + flowLean + state.tiltAngle;
           group.rotation.z = flowBank * 0.35;
         } else {
           // Neighbor Tomes: inward orientation toward desk + aerodynamic banking
@@ -587,23 +617,63 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
       if (stateRef.current.isDragging) {
         const deltaX = e.clientX - stateRef.current.lastDragX;
         stateRef.current.lastDragX = e.clientX;
-        stateRef.current.targetScroll -= deltaX * 0.0075;
-        // Clamp bounds with elastic overshoot
-        stateRef.current.targetScroll = Math.max(
-          -0.4,
-          Math.min(books.length - 1 + 0.4, stateRef.current.targetScroll)
-        );
+
+        if (stateRef.current.dragMode === 'rotate') {
+          // Dragging on the active book: horizontal drag controls yaw, vertical drag controls pitch (tilt)
+          const deltaY = e.clientY - stateRef.current.lastDragY;
+          stateRef.current.lastDragY = e.clientY;
+          // Horizontal drag -> yaw (Y rotation)
+          stateRef.current.flipAngle += deltaX * (2 * Math.PI / boundsWidth);
+          // Vertical drag -> pitch (X rotation)
+          stateRef.current.tiltAngle += deltaY * (2 * Math.PI / boundsHeight);
+          // Clamp tilt angle to reasonable range (±π/2)
+          const maxTilt = Math.PI / 2;
+          stateRef.current.tiltAngle = Math.max(-maxTilt, Math.min(maxTilt, stateRef.current.tiltAngle));
+          // Keep flip target in sync so isFlipping doesn't fight live drag
+          stateRef.current.flipTargetAngle = stateRef.current.flipAngle;
+          stateRef.current.isFlipping = false;
+        } else {
+          // Dragging on empty space: scroll the shelf
+          stateRef.current.targetScroll -= deltaX * 0.0075;
+          stateRef.current.targetScroll = Math.max(
+            -0.4,
+            Math.min(books.length - 1 + 0.4, stateRef.current.targetScroll)
+          );
+        }
         requestRender(10);
       } else {
-        requestRender(4); // Parallax sway
+        requestRender(4); // Parallax sway only
       }
     };
 
     const handleMouseDown = (e: MouseEvent) => {
       if (!isLoadedRef.current) return;
+
+      // Raycast on mousedown to decide drag mode
+      const nx = ((e.clientX - boundsLeft) / boundsWidth) * 2 - 1;
+      const ny = -(((e.clientY - boundsTop) / boundsHeight) * 2 - 1);
+      const pickMouse = new THREE.Vector2(nx, ny);
+      const pickRay = new THREE.Raycaster();
+      pickRay.setFromCamera(pickMouse, camera);
+      const hits = pickRay.intersectObjects(scene.children, true);
+
+      let hitActiveBook = false;
+      if (hits.length > 0) {
+        let hitObj: THREE.Object3D | null = hits[0].object;
+        while (hitObj && hitObj.parent && hitObj.parent !== scene) {
+          hitObj = hitObj.parent;
+        }
+        if (hitObj?.userData && hitObj.userData.index === stateRef.current.activeIndex) {
+          hitActiveBook = true;
+        }
+      }
+
       stateRef.current.isDragging = true;
+      stateRef.current.dragMode = hitActiveBook ? 'rotate' : 'scroll';
       stateRef.current.dragStartX = e.clientX;
       stateRef.current.lastDragX = e.clientX;
+      // Initialise vertical drag tracking
+      stateRef.current.lastDragY = e.clientY;
       stateRef.current.dragStartScroll = stateRef.current.targetScroll;
       requestRender(10);
     };
@@ -615,14 +685,32 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
       requestRender(10);
 
       const totalDrag = Math.abs(e.clientX - stateRef.current.dragStartX);
-      if (totalDrag > 8) {
-        // Drag snap to nearest book
+
+      if (stateRef.current.dragMode === 'rotate') {
+        // Gradually snap yaw back to front face (0 rad)
+        stateRef.current.flipStartAngle = stateRef.current.flipAngle;
+        stateRef.current.flipTargetAngle = 0;
+        stateRef.current.flipStartTime = performance.now();
+        const flipAngularDist = Math.abs(stateRef.current.flipAngle);
+        stateRef.current.flipDurationMs = Math.max(200, 500 * (flipAngularDist / Math.PI));
+        stateRef.current.isFlipping = true;
+        stateRef.current.isFlipped = false;
+        onFlipRef.current?.(false);
+        // Gradually snap pitch back to level (0 rad)
+        stateRef.current.tiltStartAngle = stateRef.current.tiltAngle;
+        stateRef.current.tiltTargetAngle = 0;
+        stateRef.current.tiltStartTime = performance.now();
+        const tiltAngularDist = Math.abs(stateRef.current.tiltAngle);
+        stateRef.current.tiltDurationMs = Math.max(200, 500 * (tiltAngularDist / Math.PI));
+        stateRef.current.isTilting = true;
+      } else if (totalDrag > 8) {
+        // Shelf scroll: snap to nearest book
         const snapped = Math.round(stateRef.current.targetScroll);
         const clamped = Math.max(0, Math.min(books.length - 1, snapped));
         stateRef.current.targetScroll = clamped;
         onSelectBookRef.current(clamped);
       } else {
-        // Click raycasting
+        // Click: raycast for book open or selection
         raycaster.setFromCamera(RAYCAST_MOUSE, camera);
         const intersects = raycaster.intersectObjects(scene.children, true);
         if (intersects.length > 0) {
@@ -633,13 +721,11 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
           if (hitObj && hitObj.userData && typeof hitObj.userData.index === 'number') {
             const clickedIdx = hitObj.userData.index;
             if (clickedIdx === stateRef.current.activeIndex) {
-              // Guard: Block opening detail modal while book is mid-flip
-              const isMidFlip = stateRef.current.flipAngle > 0.05 && stateRef.current.flipAngle < Math.PI - 0.05;
+              const isMidFlip = stateRef.current.flipAngle > 0.15 && stateRef.current.flipAngle < Math.PI - 0.15;
               if (!isMidFlip) {
                 onOpenSpreadRef.current();
               }
             } else {
-              // Click neighbor selects it
               onSelectBookRef.current(clickedIdx);
             }
           }

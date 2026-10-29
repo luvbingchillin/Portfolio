@@ -1,0 +1,42 @@
+diff --git a/src/components/LibraryScene.tsx b/src/components/LibraryScene.tsx
+--- a/src/components/LibraryScene.tsx
++++ b/src/components/LibraryScene.tsx
+@@ -120,3 +120,3 @@
+     const scene = new THREE.Scene();
+-    scene.fog = new THREE.FogExp2(0x171c1c, 0.055);
++    scene.fog = new THREE.FogExp2(0xffffff, 0.032);
+ 
+@@ -138,3 +138,3 @@
+     renderer.toneMapping = THREE.ACESFilmicToneMapping;
+-    renderer.toneMappingExposure = 1.05;
++    renderer.toneMappingExposure = 1.02;
+     container.appendChild(renderer.domElement);
+@@ -142,19 +142,19 @@
+-    // --- 2. Atmospheric Library Lighting Rig ---
+-    // Warm reading lamp key light
+-    const keyLight = new THREE.DirectionalLight(0xffecd2, 1.4);
++    // --- 2. Studio Lighting Rig (Pure White Theming) ---
++    // Key directional light: crisp specular highlights on gold foil typography
++    const keyLight = new THREE.DirectionalLight(0xfff8f0, 1.25);
+     keyLight.position.set(3.5, 4.0, 4.5);
+     scene.add(keyLight);
+ 
+-    // Soft amber desk glow
+-    const deskGlow = new THREE.PointLight(0xffb042, 1.8, 12, 1.2);
++    // Soft warm desk fill: gentle illumination on lower book boards and brass shelf inlay
++    const deskGlow = new THREE.PointLight(0xffecd2, 0.9, 12, 1.4);
+     deskGlow.position.set(0, 1.8, 2.2);
+     scene.add(deskGlow);
+ 
+-    // High library clerestory window rim light
+-    const rimLight = new THREE.DirectionalLight(0x7da4d9, 0.65);
++    // Cool rim light: crisp silhouette separation between dark leather spines and white background
++    const rimLight = new THREE.DirectionalLight(0x94b4dc, 0.55);
+     rimLight.position.set(-4.0, 3.5, -3.0);
+     scene.add(rimLight);
+ 
+-    // Deep ambient tone
+-    const ambientLight = new THREE.AmbientLight(0x281c12, 0.55);
++    // Clean studio ambient light: lifts deep leather tones and prevents muddy shadows on white
++    const ambientLight = new THREE.AmbientLight(0xfdfbf7, 0.85);
+     scene.add(ambientLight);

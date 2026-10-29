@@ -154,8 +154,8 @@ export const Preloader: FC<PreloaderProps> = ({
         flexDirection: 'column',
         justifyContent: 'space-between',
         padding: '2.5rem',
-        backgroundColor: '#171c1c',
-        color: '#f2f2f2',
+        backgroundColor: '#ffffff',
+        color: '#171c1c',
         userSelect: 'none',
         opacity: isExiting ? 0 : 1,
         transform: isExiting ? 'scale(1.03)' : 'scale(1)',
@@ -169,8 +169,8 @@ export const Preloader: FC<PreloaderProps> = ({
           position: 'absolute',
           inset: 0,
           pointerEvents: 'none',
-          opacity: 0.6,
-          background: 'radial-gradient(circle at center, rgba(49,56,59,0.3) 0%, rgba(23,28,28,0.85) 60%, #171c1c 100%)'
+          opacity: 0.7,
+          background: 'radial-gradient(circle at center, rgba(255,255,255,1) 40%, rgba(245,245,244,0.85) 80%, #eae7e4 100%)'
         }}
       />
 
@@ -182,7 +182,7 @@ export const Preloader: FC<PreloaderProps> = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          borderBottom: '1px solid rgba(49, 56, 59, 0.5)',
+          borderBottom: '1px solid rgba(0, 0, 0, 0.08)',
           paddingBottom: '1rem'
         }}
       >
@@ -194,7 +194,7 @@ export const Preloader: FC<PreloaderProps> = ({
               borderRadius: '9999px',
               backgroundColor: '#891a20',
               display: 'inline-block',
-              boxShadow: '0 0 10px #891a20'
+              boxShadow: '0 0 8px rgba(137, 26, 32, 0.4)'
             }}
           />
           <span
@@ -203,7 +203,7 @@ export const Preloader: FC<PreloaderProps> = ({
               fontSize: '12px',
               letterSpacing: '0.2em',
               textTransform: 'uppercase',
-              color: '#d6d3d1'
+              color: '#171c1c'
             }}
           >
             ATHENAEUM ARCHIVES // BOOT SEQUENCE
@@ -214,7 +214,7 @@ export const Preloader: FC<PreloaderProps> = ({
             fontFamily: 'var(--font-mono)',
             fontSize: '11px',
             letterSpacing: '0.2em',
-            color: '#8c8c8c'
+            color: '#57534e'
           }}
         >
           REV. 2026.10 // 60 FPS LOCKED
@@ -243,10 +243,10 @@ export const Preloader: FC<PreloaderProps> = ({
             justifyContent: 'center',
             padding: '1.25rem 2rem',
             borderRadius: '4px',
-            border: '1px solid rgba(212, 175, 55, 0.3)',
-            backgroundColor: 'rgba(23, 28, 28, 0.95)',
-            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.75)',
-            backdropFilter: 'blur(8px)'
+            border: '1px solid rgba(212, 175, 55, 0.45)',
+            backgroundColor: 'rgba(255, 255, 255, 0.96)',
+            boxShadow: '0 20px 40px -15px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(212, 175, 55, 0.15)',
+            backdropFilter: 'blur(12px)'
           }}
         >
           {/* Odometer Numbers */}
@@ -258,7 +258,7 @@ export const Preloader: FC<PreloaderProps> = ({
               fontSize: '4.5rem',
               fontWeight: 700,
               lineHeight: 1,
-              color: '#f2f2f2',
+              color: '#171c1c',
               letterSpacing: '0.04em'
             }}
           >
@@ -266,17 +266,17 @@ export const Preloader: FC<PreloaderProps> = ({
             <span
               style={{
                 display: hundreds > 0 ? 'inline-block' : 'none',
-                color: '#f2f2f2'
+                color: '#171c1c'
               }}
             >
               {hundreds}
             </span>
             {/* Tens digit */}
-            <span style={{ display: 'inline-block', color: '#f2f2f2' }}>
+            <span style={{ display: 'inline-block', color: '#171c1c' }}>
               {tens}
             </span>
             {/* Ones digit */}
-            <span style={{ display: 'inline-block', color: '#f2f2f2' }}>
+            <span style={{ display: 'inline-block', color: '#171c1c' }}>
               {ones}
             </span>
             {/* Percentage Symbol */}
@@ -284,7 +284,7 @@ export const Preloader: FC<PreloaderProps> = ({
               style={{
                 fontFamily: 'var(--font-serif)',
                 fontSize: '1.75rem',
-                color: '#d4af37',
+                color: '#a17a15',
                 marginLeft: '0.5rem',
                 letterSpacing: '0.1em'
               }}
@@ -299,7 +299,7 @@ export const Preloader: FC<PreloaderProps> = ({
           style={{
             width: '18rem',
             height: '3px',
-            backgroundColor: 'rgba(49, 56, 59, 0.8)',
+            backgroundColor: 'rgba(0, 0, 0, 0.08)',
             marginTop: '1.5rem',
             borderRadius: '9999px',
             overflow: 'hidden'
@@ -309,7 +309,7 @@ export const Preloader: FC<PreloaderProps> = ({
             style={{
               height: '100%',
               width: `${currentProgress}%`,
-              background: 'linear-gradient(90deg, #891a20 0%, #d4af37 100%)',
+              background: 'linear-gradient(90deg, #891a20 0%, #a17a15 100%)',
               transition: 'width 0.12s linear'
             }}
           />
@@ -321,7 +321,7 @@ export const Preloader: FC<PreloaderProps> = ({
             style={{
               fontFamily: 'var(--font-serif)',
               fontSize: '1.25rem',
-              color: '#f2f2f2',
+              color: '#171c1c',
               letterSpacing: '-0.02em',
               marginBottom: '0.25rem'
             }}
@@ -334,7 +334,7 @@ export const Preloader: FC<PreloaderProps> = ({
               fontSize: '11px',
               letterSpacing: '0.2em',
               textTransform: 'uppercase',
-              color: '#a89682'
+              color: '#57534e'
             }}
           >
             {activeBeat.telemetry}
@@ -350,16 +350,16 @@ export const Preloader: FC<PreloaderProps> = ({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          borderTop: '1px solid rgba(49, 56, 59, 0.5)',
+          borderTop: '1px solid rgba(0, 0, 0, 0.08)',
           paddingTop: '1rem',
           fontSize: '11px',
           fontFamily: 'var(--font-mono)',
           letterSpacing: '0.2em',
-          color: '#8c8c8c'
+          color: '#57534e'
         }}
       >
         <span>STAGE 0{activeBeat.beat} / 04</span>
-        <span style={{ textTransform: 'uppercase', color: currentProgress >= 100 ? '#d4af37' : '#8c8c8c' }}>
+        <span style={{ textTransform: 'uppercase', color: currentProgress >= 100 ? '#891a20' : '#57534e' }}>
           {currentProgress >= 100 ? 'PIPELINE PRIMED // LAUNCHING' : 'CALIBRATING WebGL2'}
         </span>
       </footer>

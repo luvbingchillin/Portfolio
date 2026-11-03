@@ -95,7 +95,7 @@ export const BOOKS_CATALOG: ProjectBook[] = [
     id: 'agentic-workspace',
     title: 'Autonomous Agents',
     subtitle: 'Hierarchical Multi-Agent Orchestration Protocol',
-    edition: 'Technical Treatise',
+    edition: 'Technical Monograph',
     callNumber: 'Q 335 .O73 2026',
     year: '2026',
     category: 'Systems & Tools',
@@ -122,8 +122,8 @@ export const BOOKS_CATALOG: ProjectBook[] = [
     stackShelf: 'Stack V • Bay 04'
   },
   {
-    id: 'athenaeum-portfolio',
-    title: 'Athenaeum Archive',
+    id: 'portfolio-archive',
+    title: 'Portfolio Archive',
     subtitle: 'Kinetic 3D Library & Interactive Monograph',
     edition: 'Collector’s Tome',
     callNumber: 'Z 675 .A84 2026',

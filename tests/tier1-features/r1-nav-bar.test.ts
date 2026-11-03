@@ -21,7 +21,7 @@ test('Tier 1 - Feature R1: Top-Middle Navigation Bar Layout & Interactions', asy
 
   await t.test('1.2 Brand logo, navigation links, and active page opacity specification', () => {
     // Brand title / logo and primary section links configuration
-    const brandName = 'ATHENAEUM';
+    const brandName = 'PORTFOLIO';
     assert.ok(brandName.length > 0, 'Brand logo / mark must be present');
 
     // Active link has opacity 1.0; inactive links have opacity 0.6 with cubic-bezier transition

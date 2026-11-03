@@ -295,28 +295,28 @@ test('Challenger TopNav: Suite 3 - Sliding Page Dot Mathematical Invariants', as
     assert.strictEqual(Number(match![2]), 35.0);
   });
 
-  await t.test('3.6 Modal state switching (Folio <-> Treatise) updates active tab cleanly', () => {
-    // activeTab in TopNav: const activeTab = isModalOpen ? 'treatise' : manualTab;
+  await t.test('3.6 Modal state switching (Folio <-> Overview) updates active tab cleanly', () => {
+    // activeTab in TopNav: const activeTab = isModalOpen ? 'overview' : manualTab;
     let isModalOpen = false;
-    let manualTab: 'folio' | 'treatise' = 'folio';
+    let manualTab: 'folio' | 'overview' = 'folio';
 
-    const getActiveTab = () => isModalOpen ? 'treatise' : manualTab;
+    const getActiveTab = () => isModalOpen ? 'overview' : manualTab;
     assert.strictEqual(getActiveTab(), 'folio');
 
     // User opens reading modal
     isModalOpen = true;
-    assert.strictEqual(getActiveTab(), 'treatise', 'Active tab must switch to treatise when modal opens');
+    assert.strictEqual(getActiveTab(), 'overview', 'Active tab must switch to overview when modal opens');
 
     // User closes reading modal
     isModalOpen = false;
     assert.strictEqual(getActiveTab(), 'folio', 'Active tab must revert to folio when modal closes');
 
-    // User explicitly clicked treatise before modal opened
-    manualTab = 'treatise';
+    // User explicitly clicked overview before modal opened
+    manualTab = 'overview';
     isModalOpen = true;
-    assert.strictEqual(getActiveTab(), 'treatise');
+    assert.strictEqual(getActiveTab(), 'overview');
     isModalOpen = false;
-    assert.strictEqual(getActiveTab(), 'treatise', 'Active tab preserves manual treatise selection');
+    assert.strictEqual(getActiveTab(), 'overview', 'Active tab preserves manual overview selection');
   });
 });
 
@@ -571,15 +571,15 @@ test('Challenger TopNav: Suite 6 - React Component DOM Invariants & CSS Conforma
     assert.ok(html.includes('class="nav-center__list"'));
 
     // Brand mark & logo
-    assert.ok(html.includes('class="nav-logo w-inline-block w--current"'));
+    assert.ok(html.includes('class="nav-logo w-inline-block w--current group"'));
     assert.ok(html.includes('bg-[#891a20]'));
-    assert.ok(html.includes('ATHENAEUM'));
+    assert.ok(html.includes('PORTFOLIO'));
 
-    // Primary section links: Folio & Treatise
+    // Primary section links: Folio & Overview
     assert.ok(html.includes('href="#folio"'));
-    assert.ok(html.includes('<span>Folio</span>'));
-    assert.ok(html.includes('href="#treatise"'));
-    assert.ok(html.includes('<span>Treatise</span>'));
+    assert.ok(html.includes('Folio'));
+    assert.ok(html.includes('href="#overview"'));
+    assert.ok(html.includes('Overview'));
 
     // Animated rolling label track
     assert.ok(html.includes('data-dropdown-toggle="closed"'));

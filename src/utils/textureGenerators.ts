@@ -243,7 +243,7 @@ function drawFrontCoverArtwork(
   ctx.textAlign = 'center';
   ctx.font = '500 24px "Ppmuseum", "PP Museum", "Cinzel", "Times New Roman", serif';
   ctx.letterSpacing = '6px';
-  ctx.fillText('ATHENAEUM ARCHIVES • VOL. XXIV', width / 2, 130);
+  ctx.fillText('PORTFOLIO ARCHIVES • VOL. XXIV', width / 2, 130);
 
   ctx.font = '400 20px "Ppmuseum", "PP Museum", "JetBrains Mono", monospace';
   ctx.letterSpacing = '3px';

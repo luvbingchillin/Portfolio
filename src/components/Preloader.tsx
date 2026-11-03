@@ -206,7 +206,7 @@ export const Preloader: FC<PreloaderProps> = ({
               color: '#171c1c'
             }}
           >
-            ATHENAEUM ARCHIVES // BOOT SEQUENCE
+            PORTFOLIO ARCHIVES // BOOT SEQUENCE
           </span>
         </div>
         <div

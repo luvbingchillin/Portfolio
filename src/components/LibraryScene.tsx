@@ -86,6 +86,9 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
     booksCount: books.length,
     // dragMode: 'scroll' browses shelf, 'rotate' spins active book
     dragMode: 'scroll' as 'scroll' | 'rotate',
+    hoveredBookIndex: null as number | null,
+    hoverProgress: 0,
+    bookHovers: books.map(() => 0),
   });
 
 
@@ -126,6 +129,9 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
     if (stateRef.current.bookScrolls.length !== books.length) {
       stateRef.current.bookScrolls = books.map(() => stateRef.current.currentScroll);
     }
+    if (stateRef.current.bookHovers.length !== books.length) {
+      stateRef.current.bookHovers = books.map(() => 0);
+    }
     stateRef.current.booksCount = books.length;
   }, [books]);
 
@@ -137,68 +143,54 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
 
     // --- 1. Scene, Camera, Renderer ---
     const scene = new THREE.Scene();
-    scene.fog = new THREE.FogExp2(0xffffff, 0.032);
+    scene.fog = new THREE.Fog(0xffffff, 7, 14);
 
     const initialWidth = container.clientWidth || window.innerWidth;
     const initialHeight = container.clientHeight || window.innerHeight;
 
     const camera = new THREE.PerspectiveCamera(
-      38,
+      initialWidth <= 768 ? 48 : 40,
       safeAspect(initialWidth, initialHeight),
       0.1,
       100
     );
-    camera.position.set(0, 0.4, 4.8);
+    camera.position.set(0, 0, 4.4);
     camera.lookAt(0, 0, 0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
     renderer.setSize(initialWidth, initialHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.02;
+    renderer.toneMappingExposure = 0.95;
     container.appendChild(renderer.domElement);
 
-    // --- 2. Studio Lighting Rig (Pure White Theming) ---
-    // Key directional light: crisp specular highlights on gold foil typography
-    const keyLight = new THREE.DirectionalLight(0xfff8f0, 1.25);
-    keyLight.position.set(3.5, 4.0, 4.5);
+    // --- 2. Studio Lighting Rig (A24 Reference Setup) ---
+    // Key directional light: warm specular highlights on cover art & gold foil
+    const keyLight = new THREE.DirectionalLight(0xfff9e8, 1.1);
+    keyLight.position.set(3.5, 4.0, 6.0);
     scene.add(keyLight);
 
-    // Soft warm desk fill: gentle illumination on lower book boards and brass shelf inlay
-    const deskGlow = new THREE.PointLight(0xffecd2, 0.9, 12, 1.4);
-    deskGlow.position.set(0, 1.8, 2.2);
-    scene.add(deskGlow);
+    // Soft fill light: gentle illumination on shadow side
+    const fillLight = new THREE.DirectionalLight(0xffffff, 0.4);
+    fillLight.position.set(-5.0, -2.0, 4.0);
+    scene.add(fillLight);
 
-    // Cool rim light: crisp silhouette separation between dark leather spines and white background
-    const rimLight = new THREE.DirectionalLight(0x94b4dc, 0.55);
-    rimLight.position.set(-4.0, 3.5, -3.0);
+    // Cool rim light: crisp blue edge separation on spine and top edges
+    const rimLight = new THREE.DirectionalLight(0x499ff5, 0.75);
+    rimLight.position.set(0, 3.0, -6.0);
     scene.add(rimLight);
 
-    // Clean studio ambient light: lifts deep leather tones and prevents muddy shadows on white
-    const ambientLight = new THREE.AmbientLight(0xfdfbf7, 0.85);
+    // Studio ambient light: lifts deep leather tones against pure white
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.45);
     scene.add(ambientLight);
 
-    // --- 3. Mahogany Library Shelf Base ---
-    const shelfGeo = new THREE.BoxGeometry(32, 0.35, 3.5);
-    const shelfMat = new THREE.MeshStandardMaterial({
-      color: 0x16110d,
-      roughness: 0.4,
-      metalness: 0.2
-    });
-    const shelf = new THREE.Mesh(shelfGeo, shelfMat);
-    shelf.position.set(0, -1.38, 0);
-    scene.add(shelf);
-
-    // Brass front inlay lip on shelf
-    const lipGeo = new THREE.BoxGeometry(32, 0.05, 0.06);
-    const lipMat = new THREE.MeshStandardMaterial({
-      color: 0xd4af37,
-      roughness: 0.25,
-      metalness: 0.85
-    });
-    const shelfLip = new THREE.Mesh(lipGeo, lipMat);
-    shelfLip.position.set(0, -1.18, 1.6);
-    scene.add(shelfLip);
+    // --- 3. Gallery Group (Isometric slanted studio view matching A24 reference site) ---
+    // Rotated -30 deg on X, -30 deg on Y with 1.08 scale
+    const galleryGroup = new THREE.Group();
+    galleryGroup.rotation.x = THREE.MathUtils.degToRad(-30);
+    galleryGroup.rotation.y = THREE.MathUtils.degToRad(-30);
+    galleryGroup.scale.setScalar(1.08);
+    scene.add(galleryGroup);
 
     // --- 4. Assemble 3D Books ---
     const bookWidth = 1.6;
@@ -323,9 +315,120 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
       ribbon.rotation.z = -0.15;
       bookGroup.add(ribbon);
 
-      scene.add(bookGroup);
+      galleryGroup.add(bookGroup);
       bookGroups.push(bookGroup);
     });
+
+    // --- 4b. Visual Indicator for Current Selected Book (Reticle & Soft Pedestal) ---
+    const indicatorGroup = new THREE.Group();
+    indicatorGroup.name = 'selectedBookIndicator';
+
+    // A. GROUND PEDESTAL & SHADOW (Flat on horizontal floor beneath book, y = -1.22)
+    const groundGroup = new THREE.Group();
+    groundGroup.rotation.x = -Math.PI / 2;
+    groundGroup.position.y = -1.22;
+
+    // 1. Soft radial ambient contact shadow disc
+    const shadowGeo = new THREE.CircleGeometry(1.65, 48);
+    const shadowCanvas = document.createElement('canvas');
+    shadowCanvas.width = 128;
+    shadowCanvas.height = 128;
+    const sCtx = shadowCanvas.getContext('2d');
+    if (sCtx) {
+      const grad = sCtx.createRadialGradient(64, 64, 12, 64, 64, 64);
+      grad.addColorStop(0, 'rgba(30, 30, 30, 0.28)');
+      grad.addColorStop(0.45, 'rgba(30, 30, 30, 0.09)');
+      grad.addColorStop(1, 'rgba(30, 30, 30, 0)');
+      sCtx.fillStyle = grad;
+      sCtx.fillRect(0, 0, 128, 128);
+    }
+    const shadowTex = new THREE.CanvasTexture(shadowCanvas);
+    const shadowMat = new THREE.MeshBasicMaterial({
+      map: shadowTex,
+      transparent: true,
+      opacity: 0.85,
+      depthWrite: false
+    });
+    const shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
+    groundGroup.add(shadowMesh);
+
+    // 2. Outer hairline focus ring on ground
+    const outerGroundGeo = new THREE.RingGeometry(1.36, 1.378, 64);
+    const groundRingMat = new THREE.MeshBasicMaterial({
+      color: 0x222222,
+      transparent: true,
+      opacity: 0.22,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    const outerGroundMesh = new THREE.Mesh(outerGroundGeo, groundRingMat);
+    outerGroundMesh.position.z = 0.002;
+    groundGroup.add(outerGroundMesh);
+
+    // 3. Inner focus ring on ground
+    const innerGroundGeo = new THREE.RingGeometry(1.16, 1.172, 64);
+    const innerGroundMat = new THREE.MeshBasicMaterial({
+      color: 0x222222,
+      transparent: true,
+      opacity: 0.14,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    const innerGroundMesh = new THREE.Mesh(innerGroundGeo, innerGroundMat);
+    innerGroundMesh.position.z = 0.003;
+    groundGroup.add(innerGroundMesh);
+
+    // 4. Ground quadrant ticks (4 ticks at 0, 90, 180, 270 deg)
+    const tickMat = new THREE.MeshBasicMaterial({
+      color: 0x891a20, // Crimson brand accent
+      transparent: true,
+      opacity: 0.70,
+      depthWrite: false
+    });
+    for (let t = 0; t < 4; t++) {
+      const tickGeo = new THREE.PlaneGeometry(0.02, 0.12);
+      const tickMesh = new THREE.Mesh(tickGeo, tickMat);
+      const angle = (t * Math.PI) / 2;
+      tickMesh.position.set(Math.cos(angle) * 1.37, Math.sin(angle) * 1.37, 0.004);
+      tickMesh.rotation.z = angle;
+      groundGroup.add(tickMesh);
+    }
+    indicatorGroup.add(groundGroup);
+
+    // B. FLOATING RETICLE AROUND ACTIVE BOOK MODEL (Encircles the active volume at y = 0)
+    const haloGroup = new THREE.Group();
+    haloGroup.position.y = 0;
+
+    // 1. Floating surrounding halo ring
+    const haloRingGeo = new THREE.RingGeometry(1.48, 1.498, 64);
+    const haloRingMat = new THREE.MeshBasicMaterial({
+      color: 0x891a20, // Brand crimson accent
+      transparent: true,
+      opacity: 0.38,
+      side: THREE.DoubleSide,
+      depthWrite: false
+    });
+    const haloRingMesh = new THREE.Mesh(haloRingGeo, haloRingMat);
+    haloGroup.add(haloRingMesh);
+
+    // 2. Cardinal focus brackets around the model
+    const haloTickMat = new THREE.MeshBasicMaterial({
+      color: 0x891a20,
+      transparent: true,
+      opacity: 0.80,
+      depthWrite: false
+    });
+    for (let t = 0; t < 4; t++) {
+      const tickGeo = new THREE.PlaneGeometry(0.02, 0.10);
+      const tickMesh = new THREE.Mesh(tickGeo, haloTickMat);
+      const angle = (t * Math.PI) / 2;
+      tickMesh.position.set(Math.cos(angle) * 1.49, Math.sin(angle) * 1.49, 0.002);
+      tickMesh.rotation.z = angle;
+      haloGroup.add(tickMesh);
+    }
+    indicatorGroup.add(haloGroup);
+
+    galleryGroup.add(indicatorGroup);
 
     // --- 5. Background Asynchronous Preloading & GPU Warming Pipeline ---
     const runWarmup = async () => {
@@ -504,7 +607,22 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
                        Math.abs(state.targetScroll - state.currentScroll) > 0.0008;
       const isFlipping = state.isFlipping || Math.abs(state.flipAngle - state.flipTargetAngle) > 0.001;
 
-      const isDirectlyActive = state.isDragging || isMoving || isAnyBookLagging || isFlipping || isRevealing;
+      // Hover Transition: update per-book smooth exponential approach (dt * 10) matching A24
+      let isAnyHoverActive = false;
+      for (let i = 0; i < numBooks; i++) {
+        const isThisHovered = (state.hoveredBookIndex === i && !state.isDragging);
+        const targetHover = isThisHovered ? 1.0 : 0.0;
+        state.bookHovers[i] += (targetHover - state.bookHovers[i]) * Math.min(1.0, safeDt * 10);
+        if (Math.abs(state.bookHovers[i] - targetHover) < 0.001) {
+          state.bookHovers[i] = targetHover;
+        }
+        if (state.bookHovers[i] > 0.001) {
+          isAnyHoverActive = true;
+        }
+      }
+      state.hoverProgress = state.bookHovers[state.activeIndex] || 0;
+
+      const isDirectlyActive = state.isDragging || isMoving || isAnyBookLagging || isFlipping || isRevealing || isAnyHoverActive;
 
       if (isDirectlyActive) {
         decayFrames = 10;
@@ -543,9 +661,8 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
       // Downforce dip (flowDip): -|Ce| * 0.014 (clamped to [-0.09, 0.0])
       const flowDip = absCe === 0 ? 0 : -Math.min(0.09, absCe * 0.014);
 
-      // Mouse Parallax Sway
-      const swayX = state.mouseX * 0.18;
-      const swayY = state.mouseY * 0.12;
+      // Hover Tilt: only activates when actively hovering a model (matching A24 hoverTiltStrength = 0.21)
+      const hoverTiltStrength = 0.21;
 
       // 8. Zero-Allocation Indexed Loop: Position & Orient Book Meshes
       for (let idx = 0; idx < numBooks; idx++) {
@@ -562,40 +679,68 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
         const arcX = Math.sin(theta) * 5.52;
         const arcZ = Math.cos(theta) * 2.4 - 2.4; // depth recession into screen (-Z)
 
-        // Elevation Peaking & Scale Attenuation
+        // Elevation Peaking & Scale Attenuation (matching A24 active elevation)
         const elevation = Math.max(0, 1 - absOffset * 1.5) * 0.18;
-        const shelfY = -0.05 + elevation + flowDip;
-        const shelfScale = 1.0 - Math.min(1, absOffset) * (1.0 - 0.82);
+        const bookY = (isActive ? 0.06 : 0) + elevation * 0.12 + flowDip;
+        const bookScale = 1.0 - Math.min(1, absOffset) * (1.0 - 0.80);
 
         // Interpolated Fan Reveal Coordinates with Flight Recede (-2.2)
         const targetX = arcX * (0.35 + 0.65 * fanProgress);
         const targetZ = -2.2 + (arcZ - (-2.2)) * fanProgress;
-        const targetY = shelfY;
-        const scale = shelfScale * (0.8 + 0.2 * fanProgress);
+        const targetY = bookY;
+        const scale = bookScale * (0.8 + 0.2 * fanProgress);
 
         group.position.x = targetX;
         group.position.y = targetY;
         group.position.z = targetZ;
         group.scale.setScalar(scale);
 
+        // Per-book dynamic interactive hover response
+        const bookHover = state.bookHovers[idx] || 0;
+        const bookSwayX = state.mouseX * hoverTiltStrength * bookHover;
+        const bookSwayY = state.mouseY * hoverTiltStrength * bookHover;
+
         // Aerodynamic Drag Rotations & Yaw
         if (isActive) {
-          // Center Active Tome: flip angle + mouse sway + banked tilt
-          group.rotation.y = state.flipAngle + swayX + flowBank * 0.70;
-          group.rotation.x = -swayY + flowLean + state.tiltAngle;
+          // Center Active Tome: flip angle + hover tilt + banked tilt
+          group.rotation.y = state.flipAngle + bookSwayX + flowBank * 0.70;
+          group.rotation.x = -bookSwayY + flowLean + state.tiltAngle;
           group.rotation.z = flowBank * 0.35;
         } else {
-          // Neighbor Tomes: inward orientation toward desk + aerodynamic banking
+          // Neighbor Tomes: inward orientation along arc + aerodynamic banking + interactive hover movement
           const angleTowardsCenter = -Math.sign(offset) * 0.22 * fanProgress;
-          group.rotation.y = angleTowardsCenter + flowBank;
-          group.rotation.x = flowLean;
-          group.rotation.z = flowBank * 0.25;
+          group.rotation.y = angleTowardsCenter + flowBank + bookSwayX * 0.85;
+          group.rotation.x = flowLean - bookSwayY * 0.85;
+          group.rotation.z = flowBank * 0.25 + bookSwayX * 0.20;
+
+          // Tactile hover reaction on neighbor books: subtly elevate & bring forward towards viewer
+          if (bookHover > 0.001) {
+            group.position.y += bookHover * 0.12;
+            group.position.z += bookHover * 0.35;
+            group.scale.multiplyScalar(1.0 + bookHover * 0.06);
+          }
         }
       }
 
-      // Ambient camera breathing sway
-      camera.position.x = state.mouseX * 0.15;
-      camera.position.y = 0.4 + state.mouseY * 0.1;
+      // 9. Update Active Book Visual Indicator Reticle & Soft Pedestal
+      if (indicatorGroup) {
+        indicatorGroup.visible = fanProgress > 0.05;
+        const activeGroup = bookGroups[state.activeIndex];
+        if (activeGroup) {
+          const targetIndX = activeGroup.position.x;
+          const targetIndZ = activeGroup.position.z;
+          const targetIndY = activeGroup.position.y;
+          // Smooth glide across books during navigation
+          indicatorGroup.position.x += (targetIndX - indicatorGroup.position.x) * Math.min(1.0, safeDt * 12);
+          indicatorGroup.position.z += (targetIndZ - indicatorGroup.position.z) * Math.min(1.0, safeDt * 12);
+          indicatorGroup.position.y = targetIndY;
+          const pulse = 1.0 + 0.015 * Math.sin(now * 0.003);
+          indicatorGroup.scale.setScalar((0.85 + 0.15 * fanProgress) * (activeGroup.scale.x / 1.08) * pulse);
+        }
+      }
+
+      // Camera position remains stable at center (0, 0, 4.4) — no unwanted whole-scene drifting
+      camera.position.set(0, 0, 4.4);
       camera.lookAt(CAMERA_ORIGIN);
 
       renderer.render(scene, camera);
@@ -642,7 +787,57 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
         }
         requestRender(10);
       } else {
-        requestRender(4); // Parallax sway only
+        // Raycast to check if mouse is over a 3D book model
+        raycaster.setFromCamera(RAYCAST_MOUSE, camera);
+        const hits = raycaster.intersectObjects(galleryGroup.children, true);
+        let hoveredIdx: number | null = null;
+        if (hits.length > 0) {
+          let hitObj: THREE.Object3D | null = hits[0].object;
+          while (hitObj && hitObj.parent && hitObj.parent !== galleryGroup && hitObj.parent !== scene) {
+            hitObj = hitObj.parent;
+          }
+          if (hitObj && typeof hitObj.userData?.index === 'number') {
+            hoveredIdx = hitObj.userData.index;
+          }
+        }
+
+        const wasHovered = stateRef.current.hoveredBookIndex !== null;
+        stateRef.current.hoveredBookIndex = hoveredIdx;
+
+        // Interactive cursor pointer when hovering over ANY 3D book model
+        if (container) {
+          container.style.cursor = hoveredIdx !== null ? 'pointer' : (stateRef.current.isDragging ? 'grabbing' : 'default');
+        }
+
+        let anyHoverTransition = false;
+        for (let i = 0; i < stateRef.current.bookHovers.length; i++) {
+          if (stateRef.current.bookHovers[i] > 0.001) {
+            anyHoverTransition = true;
+            break;
+          }
+        }
+
+        if (hoveredIdx !== null || wasHovered || anyHoverTransition) {
+          requestRender(10);
+        }
+      }
+    };
+
+    const handleMouseLeave = () => {
+      stateRef.current.hoveredBookIndex = null;
+      RAYCAST_MOUSE.set(-999, -999);
+      if (container) {
+        container.style.cursor = 'default';
+      }
+      let anyHover = false;
+      for (let i = 0; i < stateRef.current.bookHovers.length; i++) {
+        if (stateRef.current.bookHovers[i] > 0.001) {
+          anyHover = true;
+          break;
+        }
+      }
+      if (anyHover) {
+        requestRender(10);
       }
     };
 
@@ -660,7 +855,7 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
       let hitActiveBook = false;
       if (hits.length > 0) {
         let hitObj: THREE.Object3D | null = hits[0].object;
-        while (hitObj && hitObj.parent && hitObj.parent !== scene) {
+        while (hitObj && hitObj.parent && hitObj.parent !== galleryGroup && hitObj.parent !== scene) {
           hitObj = hitObj.parent;
         }
         if (hitObj?.userData && hitObj.userData.index === stateRef.current.activeIndex) {
@@ -715,7 +910,7 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
         const intersects = raycaster.intersectObjects(scene.children, true);
         if (intersects.length > 0) {
           let hitObj: THREE.Object3D | null = intersects[0].object;
-          while (hitObj && hitObj.parent && hitObj.parent !== scene) {
+          while (hitObj && hitObj.parent && hitObj.parent !== galleryGroup && hitObj.parent !== scene) {
             hitObj = hitObj.parent;
           }
           if (hitObj && hitObj.userData && typeof hitObj.userData.index === 'number') {
@@ -754,9 +949,13 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
     const handleResize = () => {
       if (!container) return;
       updateBounds();
-      camera.aspect = safeAspect(container.clientWidth, container.clientHeight);
+      const w = container.clientWidth || window.innerWidth;
+      const h = container.clientHeight || window.innerHeight;
+      camera.aspect = safeAspect(w, h);
+      camera.fov = w <= 768 ? 48 : 40;
       camera.updateProjectionMatrix();
-      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.setSize(w, h);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       requestRender(5);
     };
 
@@ -775,6 +974,7 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
     window.addEventListener('resize', handleResize);
     window.addEventListener('scroll', updateBounds, { passive: true });
     container.addEventListener('mousemove', handleMouseMove);
+    container.addEventListener('mouseleave', handleMouseLeave);
     container.addEventListener('mousedown', handleMouseDown);
     window.addEventListener('mouseup', handleMouseUp);
     container.addEventListener('wheel', handleWheel, { passive: false });
@@ -788,6 +988,7 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('scroll', updateBounds);
       container.removeEventListener('mousemove', handleMouseMove);
+      container.removeEventListener('mouseleave', handleMouseLeave);
       container.removeEventListener('mousedown', handleMouseDown);
       window.removeEventListener('mouseup', handleMouseUp);
       container.removeEventListener('wheel', handleWheel);

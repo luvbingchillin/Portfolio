@@ -64,7 +64,7 @@ function getTestFiles(): { tier: string; file: string }[] {
 async function main() {
   const startTime = Date.now();
   console.log('\n================================================================');
-  console.log('🏛️  ATHENAEUM 3D PORTFOLIO — 4-TIER E2E TEST SUITE RUNNER');
+  console.log('🏛️  3D PORTFOLIO — 4-TIER E2E TEST SUITE RUNNER');
   console.log('================================================================');
   console.log(`Node.js: ${process.version} | Platform: ${process.platform} | Time: ${new Date().toISOString()}`);
   console.log(`Directory: ${projectRoot}\n`);

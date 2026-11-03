@@ -32,15 +32,17 @@ export const TopNav: FC<TopNavProps> = ({
   books,
   activeIndex,
   onSelectIndex,
-  brandTitle = 'ATHENAEUM',
+  brandTitle = 'PORTFOLIO',
   className = '',
   onOpenSpread,
   isModalOpen = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
-  const [manualTab, setManualTab] = useState<'folio' | 'treatise'>('folio');
-  const activeTab = isModalOpen ? 'treatise' : manualTab;
+  const [manualTab, setManualTab] = useState<'folio' | 'overview'>('folio');
+  const activeTab = isModalOpen ? 'overview' : manualTab;
+  const [isIndexHovered, setIsIndexHovered] = useState(false);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const [hoverOrigins, setHoverOrigins] = useState<Record<number, string>>({});
   const [focusedIndex, setFocusedIndex] = useState<number | null>(activeIndex);
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth <= 991 : false
@@ -54,7 +56,7 @@ export const TopNav: FC<TopNavProps> = ({
   const navRef = useRef<HTMLElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const folioTabRef = useRef<HTMLAnchorElement>(null);
-  const treatiseTabRef = useRef<HTMLAnchorElement>(null);
+  const overviewTabRef = useRef<HTMLAnchorElement>(null);
   const toggleBtnRef = useRef<HTMLButtonElement>(null);
   const itemRefs = useRef<(HTMLAnchorElement | null)[]>([]);
 
@@ -64,7 +66,7 @@ export const TopNav: FC<TopNavProps> = ({
   // Sliding indicator dot coordinate calculation
   const updateDotPosition = useCallback(() => {
     if (!listRef.current) return;
-    const activeEl = activeTab === 'folio' ? folioTabRef.current : treatiseTabRef.current;
+    const activeEl = activeTab === 'folio' ? folioTabRef.current : overviewTabRef.current;
     if (!activeEl) return;
 
     const listRect = listRef.current.getBoundingClientRect();
@@ -142,6 +144,33 @@ export const TopNav: FC<TopNavProps> = ({
       return next;
     });
   }, [isModalOpen, activeIndex]);
+
+  // Direction-aware hover entry and exit tracking (matches A24 reference site)
+  const handleItemPointerEnter = useCallback(
+    (e: React.PointerEvent<HTMLAnchorElement>, idx: number) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const fromTop = e.clientY - rect.top < rect.height / 2;
+      setHoverOrigins((prev) => ({
+        ...prev,
+        [idx]: fromTop ? '50% 0%' : '50% 100%'
+      }));
+      setHoveredIdx(idx);
+    },
+    []
+  );
+
+  const handleItemPointerLeave = useCallback(
+    (e: React.PointerEvent<HTMLAnchorElement>, idx: number) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      const toTop = e.clientY - rect.top < rect.height / 2;
+      setHoverOrigins((prev) => ({
+        ...prev,
+        [idx]: toTop ? '50% 0%' : '50% 100%'
+      }));
+      setHoveredIdx(null);
+    },
+    []
+  );
 
   // Keyboard navigation on toggle button
   const handleToggleKeyDown = useCallback(
@@ -241,7 +270,7 @@ export const TopNav: FC<TopNavProps> = ({
                 <a
                   href="/"
                   aria-current="page"
-                  className="nav-logo w-inline-block w--current"
+                  className="nav-logo w-inline-block w--current group"
                   aria-label={`${brandTitle} home`}
                   onClick={(e) => {
                     e.preventDefault();
@@ -249,7 +278,7 @@ export const TopNav: FC<TopNavProps> = ({
                   }}
                 >
                   <span className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-[#891a20] shadow-[0_0_6px_rgba(137,26,32,0.6)]" />
+                    <span className="nav-logo__dot w-2 h-2 rounded-full bg-[#891a20] shadow-[0_0_6px_rgba(137,26,32,0.6)]" />
                     <span className="font-heading tracking-[-0.04em] font-normal text-xs uppercase text-[#171c1c]">
                       {brandTitle}
                     </span>
@@ -270,11 +299,12 @@ export const TopNav: FC<TopNavProps> = ({
                 </span>
               </li>
 
-              {/* 3. Primary Nav Links: Folio & Treatise */}
+              {/* 3. Primary Nav Links: Folio & Overview */}
               <li role="none">
                 <a
                   ref={folioTabRef}
                   href="#folio"
+                  data-hover=""
                   aria-current={activeTab === 'folio' ? 'page' : undefined}
                   className="nav-link w-inline-block"
                   data-nav-page={activeTab === 'folio' ? 'current' : 'other'}
@@ -283,41 +313,48 @@ export const TopNav: FC<TopNavProps> = ({
                     setManualTab('folio');
                   }}
                 >
-                  <span className="nav-link__label">
-                    <span>Folio</span>
+                  <span className="nav-link__label" data-hover-target="">
+                    <span data-hover-inner="" data-text="Folio">
+                      <span data-hover-text="">Folio</span>
+                    </span>
                   </span>
                 </a>
               </li>
 
               <li role="none">
                 <a
-                  ref={treatiseTabRef}
-                  href="#treatise"
-                  aria-current={activeTab === 'treatise' ? 'page' : undefined}
+                  ref={overviewTabRef}
+                  href="#overview"
+                  data-hover=""
+                  aria-current={activeTab === 'overview' ? 'page' : undefined}
                   className="nav-link w-inline-block"
-                  data-nav-page={activeTab === 'treatise' ? 'current' : 'other'}
+                  data-nav-page={activeTab === 'overview' ? 'current' : 'other'}
                   onClick={(e) => {
                     e.preventDefault();
-                    setManualTab('treatise');
+                    setManualTab('overview');
                     onOpenSpread?.();
                   }}
                 >
-                  <span className="nav-link__label">
-                    <span>Treatise</span>
+                  <span className="nav-link__label" data-hover-target="">
+                    <span data-hover-inner="" data-text="Overview">
+                      <span data-hover-text="">Overview</span>
+                    </span>
                   </span>
                 </a>
               </li>
 
               {/* 4. Dropdown Toggle Item */}
-              <li role="none" className="relative">
+              <li role="none">
                 <button
                   ref={toggleBtnRef}
                   type="button"
                   data-dropdown-toggle={isOpen ? 'open' : 'closed'}
-                  className="nav-link"
+                  className="nav-link cursor-pointer"
                   aria-expanded={isOpen}
                   aria-haspopup="true"
                   aria-controls="navigation-dropdown-0"
+                  onPointerEnter={() => setIsIndexHovered(true)}
+                  onPointerLeave={() => setIsIndexHovered(false)}
                   onClick={handleToggleDropdown}
                   onKeyDown={handleToggleKeyDown}
                 >
@@ -325,7 +362,7 @@ export const TopNav: FC<TopNavProps> = ({
                     className="nav-link__label"
                     data-nav-label=""
                     style={{
-                      width: isOpen ? '18px' : '32px',
+                      width: (isOpen || isIndexHovered) ? '18px' : '32px',
                       transition: 'width 0.46s cubic-bezier(0.32, 0.72, 0, 1)'
                     }}
                   >
@@ -336,7 +373,7 @@ export const TopNav: FC<TopNavProps> = ({
                       <span
                         data-nav-label-item="word"
                         style={{
-                          transform: isOpen ? 'translate(0, -130%)' : 'translate(0, 0)',
+                          transform: (isOpen || isIndexHovered) ? 'translate(0, -130%)' : 'translate(0, 0)',
                           transition: 'transform 0.55s cubic-bezier(0.32, 0.72, 0, 1)',
                           display: 'block'
                         }}
@@ -345,9 +382,9 @@ export const TopNav: FC<TopNavProps> = ({
                       </span>
                       <span
                         data-nav-label-item="count"
-                        aria-hidden={!isOpen}
+                        aria-hidden={!isOpen && !isIndexHovered}
                         style={{
-                          transform: isOpen ? 'translate(0, 0)' : 'translate(0%, 130%)',
+                          transform: (isOpen || isIndexHovered) ? 'translate(0, 0)' : 'translate(0%, 130%)',
                           transition: 'transform 0.55s cubic-bezier(0.32, 0.72, 0, 1)',
                           position: 'absolute',
                           inset: 0,
@@ -392,10 +429,9 @@ export const TopNav: FC<TopNavProps> = ({
                             const isCurrent = idx === activeIndex;
                             const isHovered = hoveredIdx === idx;
                             const isFocused = focusedIndex === idx;
-                            const isPillActive =
-                              hoveredIdx !== null
-                                ? isHovered
-                                : isFocused || (focusedIndex === null && isCurrent);
+                            // Current index remains active when hovering other items (matching A24 reference site)
+                            const isPillActive = isCurrent || isHovered || isFocused;
+                            const origin = hoverOrigins[idx] || (isCurrent ? '50% 50%' : '50% 100%');
 
                             return (
                               <div role="listitem" key={book.id || idx}>
@@ -407,11 +443,12 @@ export const TopNav: FC<TopNavProps> = ({
                                   data-film-scroll={book.title}
                                   data-film-status={isCurrent ? 'active' : 'inactive'}
                                   data-book-status={isCurrent ? 'active' : 'inactive'}
+                                  data-pill-active={isPillActive ? 'true' : 'false'}
                                   aria-current={isCurrent ? 'true' : undefined}
                                   tabIndex={isOpen ? 0 : -1}
                                   className="nav-dropdown__link"
-                                  onMouseEnter={() => setHoveredIdx(idx)}
-                                  onMouseLeave={() => setHoveredIdx(null)}
+                                  onPointerEnter={(e) => handleItemPointerEnter(e, idx)}
+                                  onPointerLeave={(e) => handleItemPointerLeave(e, idx)}
                                   onFocus={() => setFocusedIndex(idx)}
                                   onClick={(e) => {
                                     e.preventDefault();
@@ -421,9 +458,10 @@ export const TopNav: FC<TopNavProps> = ({
                                 >
                                   <div
                                     className="nav-dropdown__link-bg"
+                                    aria-hidden="true"
                                     style={{
                                       transform: isPillActive ? 'scaleY(1)' : 'scaleY(0)',
-                                      transformOrigin: isPillActive ? '50% 50%' : '50% 100%',
+                                      transformOrigin: origin,
                                       transition: 'transform 0.34s cubic-bezier(0.32, 0.72, 0, 1)'
                                     }}
                                   />

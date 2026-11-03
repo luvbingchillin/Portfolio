@@ -84,7 +84,7 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({ book, onClose }) => 
           </div>
         </div>
 
-        {/* RIGHT PAGE: Key Systems, Technical Ingredients & Treatises */}
+        {/* RIGHT PAGE: Key Systems, Technical Ingredients & Architecture */}
         <div className="flex-1 p-8 sm:p-12 bg-white flex flex-col justify-between">
           <div className="space-y-6">
             <div className="text-[10px] uppercase font-eyebrow tracking-[0.20em] text-[#57534e] flex justify-between items-center border-b border-black/10 pb-2.5">
@@ -96,7 +96,7 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({ book, onClose }) => 
             <div>
               <h3 className="text-xs font-eyebrow uppercase tracking-[0.20em] text-[#171c1c] mb-3 flex items-center gap-2">
                 <Award className="w-4 h-4 text-[#891a20]" />
-                Treatise Highlights & Engineering Notes
+                Key Highlights & Engineering Notes
               </h3>
               <ul className="space-y-2.5">
                 {book.keyFeatures.map((feat, idx) => (

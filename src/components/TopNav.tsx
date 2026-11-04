@@ -9,6 +9,7 @@ export interface TopNavProps {
   brandTitle?: string;
   className?: string;
   onOpenSpread?: () => void;
+  onCloseSpread?: () => void;
   isModalOpen?: boolean;
 }
 
@@ -35,6 +36,7 @@ export const TopNav: FC<TopNavProps> = ({
   brandTitle = 'PORTFOLIO',
   className = '',
   onOpenSpread,
+  onCloseSpread,
   isModalOpen = false
 }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -311,6 +313,7 @@ export const TopNav: FC<TopNavProps> = ({
                   onClick={(e) => {
                     e.preventDefault();
                     setManualTab('folio');
+                    onCloseSpread?.();
                   }}
                 >
                   <span className="nav-link__label" data-hover-target="">

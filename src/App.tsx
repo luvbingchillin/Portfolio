@@ -8,6 +8,7 @@ import { Preloader } from './components/Preloader.tsx';
 export function App() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
+  const [isOpening, setIsOpening] = useState(false);
   const [isSpreadOpen, setIsSpreadOpen] = useState(false);
 
   // Preloader & Boot Sequence State
@@ -23,24 +24,20 @@ export function App() {
     }, 1150);
   }, []);
 
-  // Keyboard navigation (arrow keys only — flip and open are now mouse/click driven)
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (isSpreadOpen || !isLoaded) return;
+  const handleOpenSpread = useCallback(() => {
+    setIsOpening(true);
+    // Reference site handover timing (380ms): allow 3D book cover to smoothly open
+    // towards the camera, then transition cleanly into the solid full-screen monograph spread
+    const timer = window.setTimeout(() => {
+      setIsSpreadOpen(true);
+    }, 380);
+    return () => clearTimeout(timer);
+  }, []);
 
-      if (e.key === 'ArrowLeft') {
-        setActiveIndex((prev) => Math.max(0, prev - 1));
-      } else if (e.key === 'ArrowRight') {
-        setActiveIndex((prev) => Math.min(BOOKS_CATALOG.length - 1, prev + 1));
-      }
-    },
-    [isSpreadOpen, isLoaded]
-  );
-
-  useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyDown]);
+  const handleCloseSpread = useCallback(() => {
+    setIsSpreadOpen(false);
+    setIsOpening(false);
+  }, []);
 
   const handleSelectIndex = useCallback((index: number) => {
     setActiveIndex(index);
@@ -48,13 +45,45 @@ export function App() {
     setIsFlipped(false);
   }, []);
 
-  const handleOpenSpread = useCallback(() => {
-    setIsSpreadOpen(true);
+  const handlePrevBook = useCallback(() => {
+    setActiveIndex((prev) => Math.max(0, prev - 1));
+    setIsFlipped(false);
   }, []);
 
-  const handleCloseSpread = useCallback(() => {
-    setIsSpreadOpen(false);
+  const handleNextBook = useCallback(() => {
+    setActiveIndex((prev) => Math.min(BOOKS_CATALOG.length - 1, prev + 1));
+    setIsFlipped(false);
   }, []);
+
+  // Keyboard navigation
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (!isLoaded) return;
+
+      if (e.key === 'Escape') {
+        if (isSpreadOpen) {
+          handleCloseSpread();
+        }
+        return;
+      }
+
+      if (isSpreadOpen) return;
+
+      if (e.key === 'ArrowLeft') {
+        setActiveIndex((prev) => Math.max(0, prev - 1));
+      } else if (e.key === 'ArrowRight') {
+        setActiveIndex((prev) => Math.min(BOOKS_CATALOG.length - 1, prev + 1));
+      } else if (e.key === 'Enter') {
+        handleOpenSpread();
+      }
+    },
+    [isSpreadOpen, isLoaded, handleCloseSpread, handleOpenSpread]
+  );
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
 
   const handleFlip = useCallback((flipped: boolean) => {
     setIsFlipped(flipped);
@@ -65,47 +94,58 @@ export function App() {
   }, []);
 
   return (
-    <main className="relative w-screen h-screen overflow-hidden bg-white text-[#171c1c] font-body">
-      {/* 3D WebGL Library Scene */}
-      <LibraryScene
-        books={BOOKS_CATALOG}
-        activeIndex={activeIndex}
-        isFlipped={isFlipped}
-        isLoaded={isLoaded}
-        onProgress={setLoadProgress}
-        onSelectBook={handleSelectIndex}
-        onOpenSpread={handleOpenSpread}
-        onFlip={handleFlip}
-      />
-
-      {/* Preloader Screen */}
-      {isPreloaderMounted && (
-        <Preloader
-          externalProgress={loadProgress}
-          onLoaded={handlePreloaderComplete}
-        />
-      )}
-
-      {/* Library UI Overlay */}
-      <div className={`transition-opacity duration-700 ${isLoaded ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
-        <LibraryUI
+    <main className="relative w-screen h-screen bg-white text-[#171c1c] font-body overflow-hidden selection:bg-[#891a20] selection:text-white">
+      
+      {/* 3D WebGL Library Stage */}
+      <div className="relative w-full h-full overflow-hidden">
+        <LibraryScene
           books={BOOKS_CATALOG}
           activeIndex={activeIndex}
           isFlipped={isFlipped}
-          onSelectIndex={handleSelectIndex}
-          onToggleFlip={handleToggleFlip}
+          isLoaded={isLoaded}
+          onProgress={setLoadProgress}
+          onSelectBook={handleSelectIndex}
           onOpenSpread={handleOpenSpread}
-          isModalOpen={isSpreadOpen}
+          onFlip={handleFlip}
+          isModalOpen={isOpening || isSpreadOpen}
+          isOpen={isOpening || isSpreadOpen}
         />
+
+        {/* Preloader Screen */}
+        {isPreloaderMounted && (
+          <Preloader
+            externalProgress={loadProgress}
+            onLoaded={handlePreloaderComplete}
+          />
+        )}
+
+        {/* Library UI Overlay (Fixed Top Navigation & Editorial Info) */}
+        <div className={`transition-opacity duration-500 ${isLoaded ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+          <LibraryUI
+            books={BOOKS_CATALOG}
+            activeIndex={activeIndex}
+            isFlipped={isFlipped}
+            onSelectIndex={handleSelectIndex}
+            onToggleFlip={handleToggleFlip}
+            onOpenSpread={handleOpenSpread}
+            onCloseSpread={handleCloseSpread}
+            isModalOpen={isOpening || isSpreadOpen}
+          />
+        </div>
       </div>
 
-      {/* Two-Page Archival Reading Spread */}
+      {/* Archival Monograph Book Page Spread (Opens in-place over 3D book, matching reference site transition) */}
       {isSpreadOpen && (
         <BookDetailModal
           book={BOOKS_CATALOG[activeIndex]}
+          currentIndex={activeIndex}
+          totalCount={BOOKS_CATALOG.length}
           onClose={handleCloseSpread}
+          onSelectPrev={handlePrevBook}
+          onSelectNext={handleNextBook}
         />
       )}
+
     </main>
   );
 }

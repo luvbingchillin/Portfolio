@@ -13,6 +13,114 @@ import {
 import { safeAspect, prepareSceneAssets } from '../utils/gpuWarming.ts';
 import type { BookTextures } from '../utils/gpuWarming.ts';
 
+/**
+ * Procedural Endpaper Canvas Texture for inside front cover
+ */
+function createEndpaperCanvas(book: ProjectBook): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 768;
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    ctx.fillStyle = '#faf7ee';
+    ctx.fillRect(0, 0, 512, 768);
+
+    // Archival gilded double margin frame
+    ctx.strokeStyle = '#c4a661';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(32, 32, 512 - 64, 768 - 64);
+    ctx.lineWidth = 1;
+    ctx.strokeRect(40, 40, 512 - 80, 768 - 80);
+
+    // Bookplate / Ex-Libris Seal
+    ctx.fillStyle = '#891a20';
+    ctx.font = 'bold 12px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('EX LIBRIS // ATHENAEUM ARCHIVE', 256, 130);
+
+    ctx.fillStyle = '#171c1c';
+    ctx.font = '22px serif';
+    ctx.fillText(book.title.toUpperCase(), 256, 200);
+
+    ctx.fillStyle = '#57534e';
+    ctx.font = '13px sans-serif';
+    ctx.fillText(book.subtitle, 256, 240);
+
+    ctx.strokeStyle = '#d6d3cd';
+    ctx.beginPath();
+    ctx.moveTo(100, 275);
+    ctx.lineTo(412, 275);
+    ctx.stroke();
+
+    ctx.fillStyle = '#78716c';
+    ctx.font = '11px monospace';
+    ctx.fillText(`CALL NO: ${book.callNumber}`, 256, 315);
+    ctx.fillText(`EDITION: ${book.edition.toUpperCase()}`, 256, 345);
+    ctx.fillText(`CURATOR: ${book.curator.toUpperCase()}`, 256, 375);
+  }
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+/**
+ * Procedural Open Page Spread Texture for front face of paper block
+ */
+function createOpenPageCanvas(book: ProjectBook): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 768;
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    ctx.fillStyle = '#fdfbf7';
+    ctx.fillRect(0, 0, 512, 768);
+
+    ctx.strokeStyle = '#e7e2d6';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(32, 32, 512 - 64, 768 - 64);
+
+    ctx.fillStyle = '#891a20';
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(`FOLIO MONOGRAPH // ${book.category.toUpperCase()}`, 256, 80);
+
+    ctx.fillStyle = '#171c1c';
+    ctx.font = '22px serif';
+    ctx.fillText(book.title, 256, 135);
+
+    // Drop cap
+    ctx.fillStyle = '#171c1c';
+    ctx.font = '52px serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(book.fullSynopsis.charAt(0), 50, 225);
+
+    ctx.fillStyle = '#292524';
+    ctx.font = '13px sans-serif';
+    const words = (book.fullSynopsis.slice(1, 190) + '...').split(' ');
+    let line = '';
+    let y = 198;
+    for (let i = 0; i < words.length; i++) {
+      const test = line + words[i] + ' ';
+      if (ctx.measureText(test).width > 340 && i > 0) {
+        ctx.fillText(line, 102, y);
+        line = words[i] + ' ';
+        y += 22;
+      } else {
+        line = test;
+      }
+    }
+    ctx.fillText(line, 102, y);
+
+    ctx.fillStyle = '#891a20';
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText('— FOLIO PAGE 01 —', 256, 715);
+  }
+  const tex = new THREE.CanvasTexture(canvas);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
 export interface LibrarySceneProps {
   books: ProjectBook[];
   activeIndex: number;
@@ -23,6 +131,8 @@ export interface LibrarySceneProps {
   onSelectBook: (index: number) => void;
   onOpenSpread: () => void;
   onFlip?: (flipped: boolean) => void;
+  isModalOpen?: boolean;
+  isOpen?: boolean;
 }
 
 export const LibraryScene: FC<LibrarySceneProps> = ({
@@ -34,10 +144,16 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
   onReady,
   onSelectBook,
   onOpenSpread,
-  onFlip
+  onFlip,
+  isModalOpen = false,
+  isOpen = false
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const isLoadedRef = useRef(Boolean(isLoaded));
+  const isModalOpenRef = useRef(Boolean(isModalOpen));
+  isModalOpenRef.current = Boolean(isModalOpen);
+  const isOpenRef = useRef(Boolean(isOpen));
+  isOpenRef.current = Boolean(isOpen);
   const revealStartTimeRef = useRef<number | null>(null);
 
   const onSelectBookRef = useRef(onSelectBook);
@@ -77,6 +193,7 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
     isTilting: false,
     isDragging: false,
     dragStartX: 0,
+    dragStartY: 0,
     dragStartScroll: 0,
     lastDragX: 0,
     lastDragY: 0,
@@ -89,7 +206,16 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
     hoveredBookIndex: null as number | null,
     hoverProgress: 0,
     bookHovers: books.map(() => 0),
+    isOpen: false,
+    openProgress: 0,
+    targetOpen: 0,
   });
+
+  useEffect(() => {
+    stateRef.current.isOpen = isOpen;
+    stateRef.current.targetOpen = isOpen ? 1.0 : 0.0;
+    requestRenderRef.current(60);
+  }, [isOpen]);
 
 
 
@@ -230,6 +356,7 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
 
       // Front Cover Board
       const frontBoardGeo = new THREE.BoxGeometry(bookWidth, bookHeight, boardThickness);
+      const endpaperTex = createEndpaperCanvas(book);
       const frontBoardMats = [
         leatherEdgeMat,
         leatherEdgeMat,
@@ -242,13 +369,23 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
           clearcoat: 0.5,
           clearcoatRoughness: 0.08
         }),
-        leatherEdgeMat
+        new THREE.MeshStandardMaterial({
+          map: endpaperTex,
+          roughness: 0.65,
+          metalness: 0.05
+        })
       ];
-      const frontBoard = new THREE.Mesh(frontBoardGeo, frontBoardMats);
-      frontBoard.position.set(0, 0, bookThickness / 2);
-      bookGroup.add(frontBoard);
+      // Front Cover Board & Spine Hinge Group (allows cover to tremble/crack open slightly under bursting tension)
+      const frontCoverHinge = new THREE.Group();
+      frontCoverHinge.name = 'frontCoverHinge';
+      frontCoverHinge.position.set(-bookWidth / 2, 0, bookThickness / 2);
 
-      // Back Cover Board
+      const frontBoard = new THREE.Mesh(frontBoardGeo, frontBoardMats);
+      frontBoard.position.set(bookWidth / 2, 0, 0);
+      frontCoverHinge.add(frontBoard);
+      bookGroup.add(frontCoverHinge);
+
+      // Back Cover Board & Spine Hinge Group
       const backBoardGeo = new THREE.BoxGeometry(bookWidth, bookHeight, boardThickness);
       const backBoardMats = [
         leatherEdgeMat,
@@ -264,9 +401,30 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
           clearcoatRoughness: 0.08
         })
       ];
+      const backCoverHinge = new THREE.Group();
+      backCoverHinge.name = 'backCoverHinge';
+      backCoverHinge.position.set(-bookWidth / 2, 0, -bookThickness / 2);
+
       const backBoard = new THREE.Mesh(backBoardGeo, backBoardMats);
-      backBoard.position.set(0, 0, -bookThickness / 2);
-      bookGroup.add(backBoard);
+      backBoard.position.set(bookWidth / 2, 0, 0);
+      backCoverHinge.add(backBoard);
+      bookGroup.add(backCoverHinge);
+
+      // Light Seam / Burst Energy Glow Mesh (along opening edge where cover cracks)
+      const burstGlowGeo = new THREE.PlaneGeometry(0.08, bookHeight * 0.94);
+      const burstGlowMat = new THREE.MeshBasicMaterial({
+        color: 0x891a20, // Brand crimson flame
+        transparent: true,
+        opacity: 0,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      });
+      const burstGlowMesh = new THREE.Mesh(burstGlowGeo, burstGlowMat);
+      burstGlowMesh.position.set(bookWidth / 2 - 0.02, 0, bookThickness / 4);
+      burstGlowMesh.rotation.y = Math.PI / 2;
+      burstGlowMesh.name = 'burstGlowMesh';
+      bookGroup.add(burstGlowMesh);
 
       // Book Spine (Left side)
       const spineGeo = new THREE.BoxGeometry(boardThickness, bookHeight, bookThickness);
@@ -294,12 +452,26 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
         bookHeight - 0.08,
         bookThickness - boardThickness * 1.8
       );
-      const paperMat = new THREE.MeshStandardMaterial({
+      const openPageTex = createOpenPageCanvas(book);
+      const pagesEdgeMat = new THREE.MeshStandardMaterial({
         map: paperEdgesTexture,
         roughness: 0.75,
         metalness: 0.15
       });
-      const pagesBlock = new THREE.Mesh(pagesGeo, paperMat);
+      const pagesOpenMat = new THREE.MeshStandardMaterial({
+        map: openPageTex,
+        roughness: 0.65,
+        metalness: 0.05
+      });
+      const pagesMats = [
+        pagesEdgeMat,
+        pagesEdgeMat,
+        pagesEdgeMat,
+        pagesEdgeMat,
+        pagesOpenMat, // +Z face (open page revealed when cover swings open)
+        pagesEdgeMat
+      ];
+      const pagesBlock = new THREE.Mesh(pagesGeo, pagesMats);
       pagesBlock.position.set(boardThickness, 0, 0);
       bookGroup.add(pagesBlock);
 
@@ -319,16 +491,16 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
       bookGroups.push(bookGroup);
     });
 
-    // --- 4b. Visual Indicator for Current Selected Book (Reticle & Soft Pedestal) ---
+    // --- 4b. Ambient Contact Shadow for Selected Book ---
     const indicatorGroup = new THREE.Group();
     indicatorGroup.name = 'selectedBookIndicator';
 
-    // A. GROUND PEDESTAL & SHADOW (Flat on horizontal floor beneath book, y = -1.22)
+    // Soft radial ambient contact shadow disc on horizontal floor (y = -1.22)
     const groundGroup = new THREE.Group();
+    groundGroup.name = 'groundGroup';
     groundGroup.rotation.x = -Math.PI / 2;
     groundGroup.position.y = -1.22;
 
-    // 1. Soft radial ambient contact shadow disc
     const shadowGeo = new THREE.CircleGeometry(1.65, 48);
     const shadowCanvas = document.createElement('canvas');
     shadowCanvas.width = 128;
@@ -336,8 +508,8 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
     const sCtx = shadowCanvas.getContext('2d');
     if (sCtx) {
       const grad = sCtx.createRadialGradient(64, 64, 12, 64, 64, 64);
-      grad.addColorStop(0, 'rgba(30, 30, 30, 0.28)');
-      grad.addColorStop(0.45, 'rgba(30, 30, 30, 0.09)');
+      grad.addColorStop(0, 'rgba(30, 30, 30, 0.30)');
+      grad.addColorStop(0.45, 'rgba(30, 30, 30, 0.08)');
       grad.addColorStop(1, 'rgba(30, 30, 30, 0)');
       sCtx.fillStyle = grad;
       sCtx.fillRect(0, 0, 128, 128);
@@ -352,82 +524,7 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
     const shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
     groundGroup.add(shadowMesh);
 
-    // 2. Outer hairline focus ring on ground
-    const outerGroundGeo = new THREE.RingGeometry(1.36, 1.378, 64);
-    const groundRingMat = new THREE.MeshBasicMaterial({
-      color: 0x222222,
-      transparent: true,
-      opacity: 0.22,
-      side: THREE.DoubleSide,
-      depthWrite: false
-    });
-    const outerGroundMesh = new THREE.Mesh(outerGroundGeo, groundRingMat);
-    outerGroundMesh.position.z = 0.002;
-    groundGroup.add(outerGroundMesh);
-
-    // 3. Inner focus ring on ground
-    const innerGroundGeo = new THREE.RingGeometry(1.16, 1.172, 64);
-    const innerGroundMat = new THREE.MeshBasicMaterial({
-      color: 0x222222,
-      transparent: true,
-      opacity: 0.14,
-      side: THREE.DoubleSide,
-      depthWrite: false
-    });
-    const innerGroundMesh = new THREE.Mesh(innerGroundGeo, innerGroundMat);
-    innerGroundMesh.position.z = 0.003;
-    groundGroup.add(innerGroundMesh);
-
-    // 4. Ground quadrant ticks (4 ticks at 0, 90, 180, 270 deg)
-    const tickMat = new THREE.MeshBasicMaterial({
-      color: 0x891a20, // Crimson brand accent
-      transparent: true,
-      opacity: 0.70,
-      depthWrite: false
-    });
-    for (let t = 0; t < 4; t++) {
-      const tickGeo = new THREE.PlaneGeometry(0.02, 0.12);
-      const tickMesh = new THREE.Mesh(tickGeo, tickMat);
-      const angle = (t * Math.PI) / 2;
-      tickMesh.position.set(Math.cos(angle) * 1.37, Math.sin(angle) * 1.37, 0.004);
-      tickMesh.rotation.z = angle;
-      groundGroup.add(tickMesh);
-    }
     indicatorGroup.add(groundGroup);
-
-    // B. FLOATING RETICLE AROUND ACTIVE BOOK MODEL (Encircles the active volume at y = 0)
-    const haloGroup = new THREE.Group();
-    haloGroup.position.y = 0;
-
-    // 1. Floating surrounding halo ring
-    const haloRingGeo = new THREE.RingGeometry(1.48, 1.498, 64);
-    const haloRingMat = new THREE.MeshBasicMaterial({
-      color: 0x891a20, // Brand crimson accent
-      transparent: true,
-      opacity: 0.38,
-      side: THREE.DoubleSide,
-      depthWrite: false
-    });
-    const haloRingMesh = new THREE.Mesh(haloRingGeo, haloRingMat);
-    haloGroup.add(haloRingMesh);
-
-    // 2. Cardinal focus brackets around the model
-    const haloTickMat = new THREE.MeshBasicMaterial({
-      color: 0x891a20,
-      transparent: true,
-      opacity: 0.80,
-      depthWrite: false
-    });
-    for (let t = 0; t < 4; t++) {
-      const tickGeo = new THREE.PlaneGeometry(0.02, 0.10);
-      const tickMesh = new THREE.Mesh(tickGeo, haloTickMat);
-      const angle = (t * Math.PI) / 2;
-      tickMesh.position.set(Math.cos(angle) * 1.49, Math.sin(angle) * 1.49, 0.002);
-      tickMesh.rotation.z = angle;
-      haloGroup.add(tickMesh);
-    }
-    indicatorGroup.add(haloGroup);
-
     galleryGroup.add(indicatorGroup);
 
     // --- 5. Background Asynchronous Preloading & GPU Warming Pipeline ---
@@ -622,7 +719,19 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
       }
       state.hoverProgress = state.bookHovers[state.activeIndex] || 0;
 
-      const isDirectlyActive = state.isDragging || isMoving || isAnyBookLagging || isFlipping || isRevealing || isAnyHoverActive;
+      // 5b. Open Spread Progression (A24 reference pacing: 550ms outDuration with press & spring)
+      const targetOpen = state.targetOpen;
+      const openSpeed = targetOpen > state.openProgress ? 3.6 : 4.4;
+      state.openProgress += (targetOpen - state.openProgress) * Math.min(1.0, safeDt * openSpeed);
+      if (Math.abs(state.openProgress - targetOpen) < 0.001) {
+        state.openProgress = targetOpen;
+      }
+      const isOpenAnimating = Math.abs(state.openProgress - targetOpen) > 0.001 || state.openProgress > 0.001;
+
+      // Keep vibration alive only when loaded, modal not open, active book is actively hovered, and not fully open
+      const isVibrating = isLoadedRef.current && fanProgress > 0.90 && !isModalOpenRef.current && state.bookHovers[state.activeIndex] > 0.001 && state.openProgress < 0.5;
+
+      const isDirectlyActive = state.isDragging || isMoving || isAnyBookLagging || isFlipping || isRevealing || isAnyHoverActive || isVibrating || isOpenAnimating;
 
       if (isDirectlyActive) {
         decayFrames = 10;
@@ -684,11 +793,14 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
         const bookY = (isActive ? 0.06 : 0) + elevation * 0.12 + flowDip;
         const bookScale = 1.0 - Math.min(1, absOffset) * (1.0 - 0.80);
 
-        // Interpolated Fan Reveal Coordinates with Flight Recede (-2.2)
+        const openEase = state.openProgress * state.openProgress * (3.0 - 2.0 * state.openProgress);
+        const neighborDamp = 1.0 - openEase;
+
+        // Interpolated Fan Reveal Coordinates with Flight Recede (-2.2) and A24 reference neighbor recession
         const targetX = arcX * (0.35 + 0.65 * fanProgress);
-        const targetZ = -2.2 + (arcZ - (-2.2)) * fanProgress;
+        const targetZ = -2.2 + (arcZ - (-2.2)) * fanProgress - (isActive ? 0 : openEase * 1.5);
         const targetY = bookY;
-        const scale = bookScale * (0.8 + 0.2 * fanProgress);
+        const scale = bookScale * (0.8 + 0.2 * fanProgress) * (isActive ? 1.0 : Math.max(0.001, neighborDamp));
 
         group.position.x = targetX;
         group.position.y = targetY;
@@ -703,11 +815,68 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
         // Aerodynamic Drag Rotations & Yaw
         if (isActive) {
           // Center Active Tome: flip angle + hover tilt + banked tilt
-          group.rotation.y = state.flipAngle + bookSwayX + flowBank * 0.70;
-          group.rotation.x = -bookSwayY + flowLean + state.tiltAngle;
-          group.rotation.z = flowBank * 0.35;
+          const scrollSpeed = Math.abs(state.scrollVelocity);
+          const scrollSuppression = Math.max(0.0, 1.0 - scrollSpeed * 3.0);
+          const vibeFactor = Math.max(0.0, 1.0 - state.openProgress * 2.0);
+          const tensionFactor = fanProgress * scrollSuppression * bookHover * vibeFactor;
+
+          // Book opening cover angle: smoothstep ease from 0 to -Math.PI * 0.95 (~ -171 deg)
+          const openAngle = -openEase * (Math.PI * 0.95);
+
+          // High-frequency delicate tactile micro-jitter
+          const vibePhase = now * 0.048;
+          const vibeX = (Math.sin(vibePhase * 1.0) * 0.0016 + Math.sin(vibePhase * 2.41) * 0.0009) * tensionFactor;
+          const vibeY = (Math.cos(vibePhase * 1.63) * 0.0014 + Math.sin(vibePhase * 3.17) * 0.0007) * tensionFactor;
+          const vibeZ = (Math.sin(vibePhase * 0.87) * 0.0010) * tensionFactor;
+
+          const vibeRotX = (Math.sin(vibePhase * 1.13) * 0.0018 + Math.cos(vibePhase * 2.61) * 0.0010) * tensionFactor;
+          const vibeRotY = (Math.cos(vibePhase * 1.77) * 0.0022 + Math.sin(vibePhase * 3.49) * 0.0011) * tensionFactor;
+          const vibeRotZ = (Math.sin(vibePhase * 1.41) * 0.0018) * tensionFactor;
+
+          // Apply micro-vibration translation + open posture transition (stepping forward into camera)
+          group.position.x += vibeX;
+          group.position.y += vibeY + openEase * -0.05;
+          group.position.z += vibeZ + openEase * 1.15;
+
+          // Tactile press & spring scale boost matching reference site _r(t)
+          const pressSpring = openEase < 0.18 ? (1.0 - openEase * 0.22) : (0.96 + (openEase - 0.18) * 0.28);
+          const openScaleBoost = pressSpring * (1.0 + openEase * 0.18);
+          const burstBreath = 1.0 + (0.005 * Math.sin(now * 0.012) + 0.0025 * Math.sin(vibePhase * 0.73)) * tensionFactor;
+          group.scale.multiplyScalar(burstBreath * openScaleBoost);
+
+          // Rotations: when opening, align square to camera for reading
+          const openDamp = 1.0 - openEase * 0.95;
+          group.rotation.y = (state.flipAngle + bookSwayX + flowBank * 0.70 + vibeRotY) * openDamp;
+          group.rotation.x = (-bookSwayY + flowLean + state.tiltAngle + vibeRotX) * openDamp;
+          group.rotation.z = (flowBank * 0.35 + vibeRotZ) * openDamp;
+
+          // Straining front cover board & gentle inner glow
+          const frontHinge = group.getObjectByName('frontCoverHinge');
+          if (frontHinge) {
+            const crackAngle = -(0.018 + 0.008 * Math.sin(vibePhase * 0.65)) * tensionFactor;
+            frontHinge.rotation.y = openAngle + crackAngle;
+          }
+          const backHinge = group.getObjectByName('backCoverHinge');
+          if (backHinge) {
+            const backCrack = (0.007 + 0.004 * Math.sin(vibePhase * 0.55)) * tensionFactor;
+            backHinge.rotation.y = backCrack + openEase * 0.05;
+          }
+          const glowMesh = group.getObjectByName('burstGlowMesh') as THREE.Mesh | null;
+          if (glowMesh && glowMesh.material) {
+            const glowMat = glowMesh.material as THREE.MeshBasicMaterial;
+            const openBurstFlash = Math.sin(openEase * Math.PI) * 0.5;
+            glowMat.opacity = Math.min(0.60, (0.16 + 0.14 * Math.sin(vibePhase * 0.8)) * tensionFactor + openBurstFlash);
+          }
         } else {
-          // Neighbor Tomes: inward orientation along arc + aerodynamic banking + interactive hover movement
+          // Neighbor Tomes: reset hinges if previously active
+          const frontHinge = group.getObjectByName('frontCoverHinge');
+          if (frontHinge && frontHinge.rotation.y !== 0) frontHinge.rotation.y = 0;
+          const backHinge = group.getObjectByName('backCoverHinge');
+          if (backHinge && backHinge.rotation.y !== 0) backHinge.rotation.y = 0;
+          const glowMesh = group.getObjectByName('burstGlowMesh') as THREE.Mesh | null;
+          if (glowMesh && glowMesh.material) (glowMesh.material as THREE.MeshBasicMaterial).opacity = 0;
+
+          // Inward orientation along arc + aerodynamic banking + interactive hover movement
           const angleTowardsCenter = -Math.sign(offset) * 0.22 * fanProgress;
           group.rotation.y = angleTowardsCenter + flowBank + bookSwayX * 0.85;
           group.rotation.x = flowLean - bookSwayY * 0.85;
@@ -722,7 +891,7 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
         }
       }
 
-      // 9. Update Active Book Visual Indicator Reticle & Soft Pedestal
+      // 9. Update Active Book Ambient Contact Shadow
       if (indicatorGroup) {
         indicatorGroup.visible = fanProgress > 0.05;
         const activeGroup = bookGroups[state.activeIndex];
@@ -734,12 +903,12 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
           indicatorGroup.position.x += (targetIndX - indicatorGroup.position.x) * Math.min(1.0, safeDt * 12);
           indicatorGroup.position.z += (targetIndZ - indicatorGroup.position.z) * Math.min(1.0, safeDt * 12);
           indicatorGroup.position.y = targetIndY;
-          const pulse = 1.0 + 0.015 * Math.sin(now * 0.003);
-          indicatorGroup.scale.setScalar((0.85 + 0.15 * fanProgress) * (activeGroup.scale.x / 1.08) * pulse);
+          indicatorGroup.scale.setScalar((0.85 + 0.15 * fanProgress) * (activeGroup.scale.x / 1.08));
         }
       }
 
       // Camera position remains stable at center (0, 0, 4.4) — no unwanted whole-scene drifting
+      // camera.position.x = state.mouseX * 0.15;
       camera.position.set(0, 0, 4.4);
       camera.lookAt(CAMERA_ORIGIN);
 
@@ -866,6 +1035,7 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
       stateRef.current.isDragging = true;
       stateRef.current.dragMode = hitActiveBook ? 'rotate' : 'scroll';
       stateRef.current.dragStartX = e.clientX;
+      stateRef.current.dragStartY = e.clientY;
       stateRef.current.lastDragX = e.clientX;
       // Initialise vertical drag tracking
       stateRef.current.lastDragY = e.clientY;
@@ -879,50 +1049,77 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
       stateRef.current.isDragging = false;
       requestRender(10);
 
-      const totalDrag = Math.abs(e.clientX - stateRef.current.dragStartX);
+      const dragDistX = Math.abs(e.clientX - stateRef.current.dragStartX);
+      const dragDistY = Math.abs(e.clientY - (stateRef.current.dragStartY || e.clientY));
+      const totalDrag = Math.hypot(dragDistX, dragDistY);
 
-      if (stateRef.current.dragMode === 'rotate') {
-        // Gradually snap yaw back to front face (0 rad)
-        stateRef.current.flipStartAngle = stateRef.current.flipAngle;
-        stateRef.current.flipTargetAngle = 0;
-        stateRef.current.flipStartTime = performance.now();
-        const flipAngularDist = Math.abs(stateRef.current.flipAngle);
-        stateRef.current.flipDurationMs = Math.max(200, 500 * (flipAngularDist / Math.PI));
-        stateRef.current.isFlipping = true;
-        stateRef.current.isFlipped = false;
-        onFlipRef.current?.(false);
-        // Gradually snap pitch back to level (0 rad)
-        stateRef.current.tiltStartAngle = stateRef.current.tiltAngle;
-        stateRef.current.tiltTargetAngle = 0;
-        stateRef.current.tiltStartTime = performance.now();
-        const tiltAngularDist = Math.abs(stateRef.current.tiltAngle);
-        stateRef.current.tiltDurationMs = Math.max(200, 500 * (tiltAngularDist / Math.PI));
-        stateRef.current.isTilting = true;
-      } else if (totalDrag > 8) {
-        // Shelf scroll: snap to nearest book
-        const snapped = Math.round(stateRef.current.targetScroll);
-        const clamped = Math.max(0, Math.min(books.length - 1, snapped));
-        stateRef.current.targetScroll = clamped;
-        onSelectBookRef.current(clamped);
+      if (totalDrag > 8) {
+        // ACTUAL DRAG GESTURE: handle drag release
+        if (stateRef.current.dragMode === 'rotate') {
+          // Gradually snap yaw back to front face (0 rad)
+          stateRef.current.flipStartAngle = stateRef.current.flipAngle;
+          stateRef.current.flipTargetAngle = 0;
+          stateRef.current.flipStartTime = performance.now();
+          const flipAngularDist = Math.abs(stateRef.current.flipAngle);
+          stateRef.current.flipDurationMs = Math.max(200, 500 * (flipAngularDist / Math.PI));
+          stateRef.current.isFlipping = true;
+          stateRef.current.isFlipped = false;
+          onFlipRef.current?.(false);
+          // Gradually snap pitch back to level (0 rad)
+          stateRef.current.tiltStartAngle = stateRef.current.tiltAngle;
+          stateRef.current.tiltTargetAngle = 0;
+          stateRef.current.tiltStartTime = performance.now();
+          const tiltAngularDist = Math.abs(stateRef.current.tiltAngle);
+          stateRef.current.tiltDurationMs = Math.max(200, 500 * (tiltAngularDist / Math.PI));
+          stateRef.current.isTilting = true;
+        } else {
+          // Shelf scroll: snap to nearest book
+          const snapped = Math.round(stateRef.current.targetScroll);
+          const clamped = Math.max(0, Math.min(books.length - 1, snapped));
+          stateRef.current.targetScroll = clamped;
+          onSelectBookRef.current(clamped);
+        }
       } else {
-        // Click: raycast for book open or selection
+        // PURE CLICK GESTURE (User clicked without dragging)
+        if (stateRef.current.dragMode === 'rotate') {
+          // Re-zero any micro-tilt/yaw
+          stateRef.current.flipAngle = 0;
+          stateRef.current.tiltAngle = 0;
+        }
+
+        // Raycast at the exact click screen coordinates
+        const clickNx = ((e.clientX - boundsLeft) / boundsWidth) * 2 - 1;
+        const clickNy = -(((e.clientY - boundsTop) / boundsHeight) * 2 - 1);
+        RAYCAST_MOUSE.set(clickNx, clickNy);
         raycaster.setFromCamera(RAYCAST_MOUSE, camera);
         const intersects = raycaster.intersectObjects(scene.children, true);
+
+        let hitIdx: number | null = null;
         if (intersects.length > 0) {
           let hitObj: THREE.Object3D | null = intersects[0].object;
           while (hitObj && hitObj.parent && hitObj.parent !== galleryGroup && hitObj.parent !== scene) {
             hitObj = hitObj.parent;
           }
           if (hitObj && hitObj.userData && typeof hitObj.userData.index === 'number') {
-            const clickedIdx = hitObj.userData.index;
-            if (clickedIdx === stateRef.current.activeIndex) {
-              const isMidFlip = stateRef.current.flipAngle > 0.15 && stateRef.current.flipAngle < Math.PI - 0.15;
-              if (!isMidFlip) {
-                onOpenSpreadRef.current();
-              }
-            } else {
-              onSelectBookRef.current(clickedIdx);
+            hitIdx = hitObj.userData.index;
+          }
+        }
+
+        // If click was on active book in mousedown or raycast
+        if (hitIdx === null && stateRef.current.dragMode === 'rotate') {
+          hitIdx = stateRef.current.activeIndex;
+        }
+
+        if (hitIdx !== null) {
+          if (hitIdx === stateRef.current.activeIndex) {
+            const isMidFlip = stateRef.current.flipAngle > 0.15 && stateRef.current.flipAngle < Math.PI - 0.15;
+            if (!isMidFlip) {
+              stateRef.current.targetOpen = stateRef.current.targetOpen > 0.5 ? 0.0 : 1.0;
+              requestRender(60);
+              onOpenSpreadRef.current();
             }
+          } else {
+            onSelectBookRef.current(hitIdx);
           }
         }
       }

@@ -10,6 +10,7 @@ export interface LibraryUIProps {
   onSelectIndex: (index: number) => void;
   onToggleFlip: () => void;
   onOpenSpread: () => void;
+  onCloseSpread?: () => void;
   scrollProgress?: number;
   isDragging?: boolean;
   velocity?: number;
@@ -21,6 +22,7 @@ export const LibraryUI: FC<LibraryUIProps> = ({
   activeIndex,
   onSelectIndex,
   onOpenSpread,
+  onCloseSpread,
   isModalOpen = false
 }) => {
   const activeBook = books[activeIndex];
@@ -34,12 +36,14 @@ export const LibraryUI: FC<LibraryUIProps> = ({
         activeIndex={activeIndex}
         onSelectIndex={onSelectIndex}
         onOpenSpread={onOpenSpread}
+        onCloseSpread={onCloseSpread}
         isModalOpen={isModalOpen}
       />
 
       {/* TOP-LEFT: Editorial Info Section */}
       <EditorialInfoSection
         activeBook={activeBook}
+        className={`transition-all duration-500 ${isModalOpen ? 'opacity-0 -translate-y-4 pointer-events-none' : 'opacity-100 translate-y-0'}`}
       />
 
     </div>

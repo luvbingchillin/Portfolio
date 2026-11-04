@@ -516,6 +516,48 @@ html, body, #root {
   animation: fadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+@keyframes folioFadeIn {
+  from { opacity: 0; transform: scale(0.99); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-folio-fade-in {
+  animation: folioFadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* --- Monograph Archival Reading Spread Colors & Classes --- */
+.monograph-page-viewport {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: #fcf9f2 !important;
+  color: #1a1614;
+  overflow-y: auto;
+  z-index: 50;
+}
+
+.bg-\[\#fcf9f2\] { background-color: #fcf9f2 !important; }
+.bg-\[\#fbf8f1\] { background-color: #fbf8f1 !important; }
+.bg-\[\#f4ece0\] { background-color: #f4ece0 !important; }
+.bg-\[\#ede3d3\] { background-color: #ede3d3 !important; }
+.bg-\[\#f4eedf\] { background-color: #f4eedf !important; }
+.bg-\[\#f4ede0\] { background-color: #f4ede0 !important; }
+.bg-\[\#f4ede0\]\/90 { background-color: rgba(244, 237, 224, 0.9) !important; }
+.bg-\[\#f4ecd9\]\/70 { background-color: rgba(244, 236, 217, 0.7) !important; }
+.bg-\[\#f8f3e8\] { background-color: #f8f3e8 !important; }
+.bg-\[\#f4ece0\]\/85 { background-color: rgba(244, 236, 224, 0.85) !important; }
+.hover\:bg-\[\#ede3d3\]:hover { background-color: #ede3d3 !important; }
+.hover\:bg-\[\#f4ece0\]:hover { background-color: #f4ece0 !important; }
+.border-\[\#dfd4bd\] { border-color: #dfd4bd; }
+.border-\[\#ded5c0\] { border-color: #ded5c0; }
+.border-\[\#ded5c0\]\/50 { border-color: rgba(222, 213, 192, 0.5); }
+.border-\[\#ded5c0\]\/60 { border-color: rgba(222, 213, 192, 0.6); }
+.border-\[\#d5caa8\] { border-color: #d5caa8; }
+.border-\[\#dfd5c1\] { border-color: #dfd5c1; }
+.border-\[\#d8cca8\] { border-color: #d8cca8; }
+.divide-\[\#ded4be\] > :not([hidden]) ~ :not([hidden]) { border-color: #ded4be; }
+
 /* Custom Scrollbar for White Editorial Theme */
 ::-webkit-scrollbar {
   width: 8px;

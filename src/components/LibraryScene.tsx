@@ -976,6 +976,11 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
             -0.4,
             Math.min(books.length - 1 + 0.4, stateRef.current.targetScroll)
           );
+          const targetBook = Math.max(0, Math.min(books.length - 1, Math.round(stateRef.current.targetScroll)));
+          if (targetBook !== stateRef.current.activeIndex) {
+            stateRef.current.activeIndex = targetBook;
+            onSelectBookRef.current(targetBook);
+          }
         }
         requestRender(10);
       } else {
@@ -1157,6 +1162,7 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
     };
 
     // Wheel navigation (horizontal or vertical delta)
+    let wheelTimeoutId: number | null = null;
     const handleWheel = (e: WheelEvent) => {
       if (!isLoadedRef.current) return;
       if (isModalOpenRef.current || stateRef.current.isOpen) return;
@@ -1167,11 +1173,28 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
         0,
         Math.min(books.length - 1, stateRef.current.targetScroll)
       );
-      requestRender(10);
-      const snapped = Math.round(stateRef.current.targetScroll);
-      if (snapped !== stateRef.current.activeIndex && Math.abs(stateRef.current.targetScroll - snapped) < 0.25) {
-        onSelectBookRef.current(snapped);
+      requestRender(20);
+
+      const targetBook = Math.max(0, Math.min(books.length - 1, Math.round(stateRef.current.targetScroll)));
+      if (targetBook !== stateRef.current.activeIndex) {
+        stateRef.current.activeIndex = targetBook;
+        onSelectBookRef.current(targetBook);
       }
+
+      // Debounce snap to nearest book on wheel settle
+      if (wheelTimeoutId !== null) {
+        window.clearTimeout(wheelTimeoutId);
+      }
+      wheelTimeoutId = window.setTimeout(() => {
+        const snapped = Math.max(0, Math.min(books.length - 1, Math.round(stateRef.current.targetScroll)));
+        stateRef.current.targetScroll = snapped;
+        if (snapped !== stateRef.current.activeIndex) {
+          stateRef.current.activeIndex = snapped;
+          onSelectBookRef.current(snapped);
+        }
+        requestRender(20);
+        wheelTimeoutId = null;
+      }, 150);
     };
 
     // Resize handler
@@ -1224,6 +1247,9 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
     // Cleanup
     return () => {
       isDisposed = true;
+      if (wheelTimeoutId !== null) {
+        window.clearTimeout(wheelTimeoutId);
+      }
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('scroll', updateBounds);

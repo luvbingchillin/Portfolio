@@ -149,7 +149,7 @@ export const TopNav: FC<TopNavProps> = ({
 
   // Direction-aware hover entry and exit tracking (matches A24 reference site)
   const handleItemPointerEnter = useCallback(
-    (e: React.PointerEvent<HTMLAnchorElement>, idx: number) => {
+    (e: React.PointerEvent<HTMLAnchorElement> | React.MouseEvent<HTMLAnchorElement>, idx: number) => {
       const rect = e.currentTarget.getBoundingClientRect();
       const fromTop = e.clientY - rect.top < rect.height / 2;
       setHoverOrigins((prev) => ({
@@ -162,7 +162,7 @@ export const TopNav: FC<TopNavProps> = ({
   );
 
   const handleItemPointerLeave = useCallback(
-    (e: React.PointerEvent<HTMLAnchorElement>, idx: number) => {
+    (e: React.PointerEvent<HTMLAnchorElement> | React.MouseEvent<HTMLAnchorElement>, idx: number) => {
       const rect = e.currentTarget.getBoundingClientRect();
       const toTop = e.clientY - rect.top < rect.height / 2;
       setHoverOrigins((prev) => ({
@@ -358,6 +358,8 @@ export const TopNav: FC<TopNavProps> = ({
                   aria-controls="navigation-dropdown-0"
                   onPointerEnter={() => setIsIndexHovered(true)}
                   onPointerLeave={() => setIsIndexHovered(false)}
+                  onMouseEnter={() => setIsIndexHovered(true)}
+                  onMouseLeave={() => setIsIndexHovered(false)}
                   onClick={handleToggleDropdown}
                   onKeyDown={handleToggleKeyDown}
                 >
@@ -432,8 +434,8 @@ export const TopNav: FC<TopNavProps> = ({
                             const isCurrent = idx === activeIndex;
                             const isHovered = hoveredIdx === idx;
                             const isFocused = focusedIndex === idx;
-                            // Current index remains active when hovering other items (matching A24 reference site)
-                            const isPillActive = isCurrent || isHovered || isFocused;
+                            // Directional pill glide: hovering an item highlights it; otherwise active item is highlighted
+                            const isPillActive = hoveredIdx !== null ? isHovered : (isCurrent || isFocused);
                             const origin = hoverOrigins[idx] || (isCurrent ? '50% 50%' : '50% 100%');
 
                             return (
@@ -452,6 +454,8 @@ export const TopNav: FC<TopNavProps> = ({
                                   className="nav-dropdown__link"
                                   onPointerEnter={(e) => handleItemPointerEnter(e, idx)}
                                   onPointerLeave={(e) => handleItemPointerLeave(e, idx)}
+                                  onMouseEnter={(e) => handleItemPointerEnter(e, idx)}
+                                  onMouseLeave={(e) => handleItemPointerLeave(e, idx)}
                                   onFocus={() => setFocusedIndex(idx)}
                                   onClick={(e) => {
                                     e.preventDefault();

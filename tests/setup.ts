@@ -22,6 +22,12 @@ export class MockCanvasRenderingContext2D {
   beginPath(): void {}
   closePath(): void {}
   arc(_x: number, _y: number, _r: number, _s: number, _e: number): void {}
+  bezierCurveTo(_cp1x: number, _cp1y: number, _cp2x: number, _cp2y: number, _x: number, _y: number): void {}
+  quadraticCurveTo(_cpx: number, _cpy: number, _x: number, _y: number): void {}
+  arcTo(_x1: number, _y1: number, _x2: number, _y2: number, _radius: number): void {}
+  ellipse(_x: number, _y: number, _radiusX: number, _radiusY: number, _rotation: number, _startAngle: number, _endAngle: number, _counterclockwise?: boolean): void {}
+  roundRect(_x: number, _y: number, _w: number, _h: number, _radii?: number | number[]): void {}
+  setLineDash(_segments: number[]): void {}
   moveTo(_x: number, _y: number): void {}
   lineTo(_x: number, _y: number): void {}
   save(): void {}

@@ -58,14 +58,14 @@ test('Tier 3: Enhancement Cross-Feature Combinations & Pairwise Synchronization'
 
     // Midpoint check: Book metadata updated at start of entrance
     assert.strictEqual(infoModel.phase, 'entering');
-    assert.strictEqual(infoModel.currentBook.title, 'Physical Rendering');
+    assert.strictEqual(infoModel.currentBook.title, BOOKS_CATALOG[2].title);
 
     // Complete entrance (700ms)
     infoModel.step(700);
     assert.strictEqual(infoModel.phase, 'idle');
     const formatted = formatMonographDisplayData(infoModel.currentBook);
-    assert.strictEqual(formatted.title, 'PHYSICAL RENDERING');
-    assert.strictEqual(formatted.rows[1].value, '2025');
+    assert.strictEqual(formatted.title, BOOKS_CATALOG[2].title.toUpperCase());
+    assert.strictEqual(formatted.rows[1].value, String(BOOKS_CATALOG[2].year));
   });
 
   await t.test('3.3 3D Canvas Navigation ↔ TopNav Sliding Page Dot: Coordinate update', () => {

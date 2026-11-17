@@ -23,7 +23,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { BOOKS_CATALOG } from '../src/data/booksData.ts';
 import { TopNavStateMachine } from './helpers/enhancementModels.ts';
-import { stepHarmonicOscillator } from './helpers/physics.ts';
 
 // ============================================================================
 // SUITE 1: EVENT PASS-THROUGH & DEAD-ZONE ANALYSIS
@@ -293,18 +292,17 @@ test('Challenger M2-2 Suite 3: Hover Pill Scale & Multi-Active State Analysis', 
   await t.test('3.3 High-frequency hover traversal simulation (1000 events)', () => {
     // Simulate 1000 rapid pointer movements back and forth across 5 items
     let hoveredIdx: number | null = null;
-    let focusedIndex = 0;
-    const activeIndex = 0;
+    let _focusedIndex = 0;
 
     const startTime = Date.now();
     for (let iter = 0; iter < 200; iter++) {
       for (let i = 0; i < 5; i++) {
         hoveredIdx = i;
-        focusedIndex = i; // with proper focus-follow-hover
+        _focusedIndex = i; // with proper focus-follow-hover
       }
       for (let i = 4; i >= 0; i--) {
         hoveredIdx = i;
-        focusedIndex = i;
+        _focusedIndex = i;
       }
     }
     // Mouse leaves dropdown

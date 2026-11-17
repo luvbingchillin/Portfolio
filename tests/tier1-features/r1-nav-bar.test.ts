@@ -90,8 +90,8 @@ test('Tier 1 - Feature R1: Top-Middle Navigation Bar Layout & Interactions', asy
 
     // Verify monograph metadata presented in dropdown item
     const selectedBook = navMachine.books[2];
-    assert.strictEqual(selectedBook.title, 'Physical Rendering');
-    assert.strictEqual(String(selectedBook.year), '2025');
+    assert.strictEqual(selectedBook.title, BOOKS_CATALOG[2].title);
+    assert.strictEqual(String(selectedBook.year), String(BOOKS_CATALOG[2].year));
   });
 
   await t.test('1.6 Responsive mobile viewport bottom docking (<= 991px)', () => {

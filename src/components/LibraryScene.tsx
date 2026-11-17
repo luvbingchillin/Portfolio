@@ -151,21 +151,25 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
   const mountRef = useRef<HTMLDivElement>(null);
   const isLoadedRef = useRef(Boolean(isLoaded));
   const isModalOpenRef = useRef(Boolean(isModalOpen));
-  isModalOpenRef.current = Boolean(isModalOpen);
   const isOpenRef = useRef(Boolean(isOpen));
-  isOpenRef.current = Boolean(isOpen);
   const revealStartTimeRef = useRef<number | null>(null);
 
   const onSelectBookRef = useRef(onSelectBook);
-  onSelectBookRef.current = onSelectBook;
   const onOpenSpreadRef = useRef(onOpenSpread);
-  onOpenSpreadRef.current = onOpenSpread;
   const onProgressRef = useRef(onProgress);
-  onProgressRef.current = onProgress;
   const onReadyRef = useRef(onReady);
-  onReadyRef.current = onReady;
   const onFlipRef = useRef(onFlip);
-  onFlipRef.current = onFlip;
+
+  useEffect(() => {
+    isLoadedRef.current = Boolean(isLoaded);
+    isModalOpenRef.current = Boolean(isModalOpen);
+    isOpenRef.current = Boolean(isOpen);
+    onSelectBookRef.current = onSelectBook;
+    onOpenSpreadRef.current = onOpenSpread;
+    onProgressRef.current = onProgress;
+    onReadyRef.current = onReady;
+    onFlipRef.current = onFlip;
+  });
 
   const requestRenderRef = useRef<(frames?: number) => void>(() => {});
 
@@ -209,7 +213,19 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
     isOpen: false,
     openProgress: 0,
     targetOpen: 0,
+    prefersReducedMotion: false,
   });
+
+  useEffect(() => {
+    const mq = typeof window !== 'undefined' && window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : null;
+    const updateMotion = () => {
+      stateRef.current.prefersReducedMotion = Boolean(mq?.matches);
+      requestRenderRef.current(10);
+    };
+    updateMotion();
+    mq?.addEventListener?.('change', updateMotion);
+    return () => mq?.removeEventListener?.('change', updateMotion);
+  }, []);
 
   useEffect(() => {
     stateRef.current.isOpen = isOpen;
@@ -321,7 +337,7 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
     // --- 4. Assemble 3D Books ---
     const bookWidth = 1.6;
     const bookHeight = 2.3;
-    const bookThickness = 0.34;
+    const defaultBookThickness = 0.34;
     const boardThickness = 0.035;
 
     const paperEdgesTexture = createPaperEdgesTexture();
@@ -332,6 +348,9 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
     books.forEach((book, idx) => {
       const bookGroup = new THREE.Group();
       bookGroup.userData = { index: idx, id: book.id };
+      const bookThickness = book.thickness || defaultBookThickness;
+      const ribbonColor = book.ribbonColor || '#891a20';
+      const glowColor = book.glowColor || book.accentColor || '#891a20';
 
       // Front & Spine & Back Procedural Textures
       const frontTex = createFrontCoverTexture(book);
@@ -413,7 +432,7 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
       // Light Seam / Burst Energy Glow Mesh (along opening edge where cover cracks)
       const burstGlowGeo = new THREE.PlaneGeometry(0.08, bookHeight * 0.94);
       const burstGlowMat = new THREE.MeshBasicMaterial({
-        color: 0x891a20, // Brand crimson flame
+        color: new THREE.Color(glowColor),
         transparent: true,
         opacity: 0,
         blending: THREE.AdditiveBlending,
@@ -478,7 +497,7 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
       // Silk Ribbon Bookmark
       const ribbonGeo = new THREE.BoxGeometry(0.08, 0.45, 0.01);
       const ribbonMat = new THREE.MeshStandardMaterial({
-        color: 0x891a20,
+        color: new THREE.Color(ribbonColor),
         roughness: 0.3,
         metalness: 0.1
       });
@@ -721,7 +740,7 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
 
       // 5b. Open Spread Progression (A24 reference pacing: 550ms outDuration with press & spring)
       const targetOpen = state.targetOpen;
-      const openSpeed = targetOpen > state.openProgress ? 3.6 : 4.4;
+      const openSpeed = targetOpen > state.openProgress ? 4.8 : 5.4;
       state.openProgress += (targetOpen - state.openProgress) * Math.min(1.0, safeDt * openSpeed);
       if (Math.abs(state.openProgress - targetOpen) < 0.001) {
         state.openProgress = targetOpen;
@@ -762,13 +781,13 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
 
       // Pitch tilt (flowLean): sgn(Ce) * sqrt(|Ce|) * 0.055, clamped [-0.30, 0.30]
       const rawLean = signCe * Math.sqrt(absCe) * 0.055;
-      const flowLean = Math.max(-0.30, Math.min(0.30, rawLean));
+      const flowLean = state.prefersReducedMotion ? 0 : Math.max(-0.30, Math.min(0.30, rawLean));
 
       // Roll bank (flowBank): -Ce * 0.32
-      const flowBank = Ce === 0 ? 0 : -Ce * 0.32;
+      const flowBank = (state.prefersReducedMotion || Ce === 0) ? 0 : -Ce * 0.32;
 
       // Downforce dip (flowDip): -|Ce| * 0.014 (clamped to [-0.09, 0.0])
-      const flowDip = absCe === 0 ? 0 : -Math.min(0.09, absCe * 0.014);
+      const flowDip = (state.prefersReducedMotion || absCe === 0) ? 0 : -Math.min(0.09, absCe * 0.014);
 
       // Hover Tilt: only activates when actively hovering a model (matching A24 hoverTiltStrength = 0.21)
       const hoverTiltStrength = 0.21;
@@ -798,7 +817,7 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
 
         // Interpolated Fan Reveal Coordinates with Flight Recede (-2.2) and A24 reference neighbor recession
         const targetX = arcX * (0.35 + 0.65 * fanProgress);
-        const targetZ = -2.2 + (arcZ - (-2.2)) * fanProgress - (isActive ? 0 : openEase * 1.5);
+        const targetZ = -2.2 + (arcZ - (-2.2)) * fanProgress - (isActive ? 0 : openEase * 2.8);
         const targetY = bookY;
         const scale = bookScale * (0.8 + 0.2 * fanProgress) * (isActive ? 1.0 : Math.max(0.001, neighborDamp));
 
@@ -809,8 +828,8 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
 
         // Per-book dynamic interactive hover response
         const bookHover = state.bookHovers[idx] || 0;
-        const bookSwayX = state.mouseX * hoverTiltStrength * bookHover;
-        const bookSwayY = state.mouseY * hoverTiltStrength * bookHover;
+        const bookSwayX = state.prefersReducedMotion ? 0 : state.mouseX * hoverTiltStrength * bookHover;
+        const bookSwayY = state.prefersReducedMotion ? 0 : state.mouseY * hoverTiltStrength * bookHover;
 
         // Aerodynamic Drag Rotations & Yaw
         if (isActive) {
@@ -818,7 +837,7 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
           const scrollSpeed = Math.abs(state.scrollVelocity);
           const scrollSuppression = Math.max(0.0, 1.0 - scrollSpeed * 3.0);
           const vibeFactor = Math.max(0.0, 1.0 - state.openProgress * 2.0);
-          const tensionFactor = fanProgress * scrollSuppression * bookHover * vibeFactor;
+          const tensionFactor = state.prefersReducedMotion ? 0 : (fanProgress * scrollSuppression * bookHover * vibeFactor);
 
           // Book opening cover angle: smoothstep ease from 0 to -Math.PI * 0.95 (~ -171 deg)
           const openAngle = -openEase * (Math.PI * 0.95);
@@ -836,7 +855,7 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
           // Apply micro-vibration translation + open posture transition (stepping forward into camera)
           group.position.x += vibeX;
           group.position.y += vibeY + openEase * -0.05;
-          group.position.z += vibeZ + openEase * 1.15;
+          group.position.z += vibeZ + openEase * 0.45;
 
           // Tactile press & spring scale boost matching reference site _r(t)
           const pressSpring = openEase < 0.18 ? (1.0 - openEase * 0.22) : (0.96 + (openEase - 0.18) * 0.28);
@@ -907,9 +926,12 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
         }
       }
 
-      // Camera position remains stable at center (0, 0, 4.4) — no unwanted whole-scene drifting
-      // camera.position.x = state.mouseX * 0.15;
-      camera.position.set(0, 0, 4.4);
+      // Cinematic Camera Dolly-In: Glides into foreground as the book opens
+      const currentOpenEase = state.openProgress * state.openProgress * (3.0 - 2.0 * state.openProgress);
+      const dollyZ = state.prefersReducedMotion ? 4.4 : (4.4 - currentOpenEase * 1.55);
+      const dollyY = state.prefersReducedMotion ? 0.0 : (currentOpenEase * 0.10);
+      camera.position.set(0, dollyY, dollyZ);
+      CAMERA_ORIGIN.set(0, dollyY * 0.35, 0);
       camera.lookAt(CAMERA_ORIGIN);
 
       renderer.render(scene, camera);
@@ -918,7 +940,7 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
     tick();
 
     // --- 7. Interaction Handlers ---
-    const handleMouseMove = (e: MouseEvent) => {
+    const handleMouseMove = (e: MouseEvent | PointerEvent) => {
       const x = ((e.clientX - boundsLeft) / boundsWidth) * 2 - 1;
       const y = -(((e.clientY - boundsTop) / boundsHeight) * 2 - 1);
       stateRef.current.mouseX = x;
@@ -1010,7 +1032,7 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
       }
     };
 
-    const handleMouseDown = (e: MouseEvent) => {
+    const handleMouseDown = (e: MouseEvent | PointerEvent) => {
       if (!isLoadedRef.current) return;
 
       // Raycast on mousedown to decide drag mode
@@ -1043,7 +1065,7 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
       requestRender(10);
     };
 
-    const handleMouseUp = (e: MouseEvent) => {
+    const handleMouseUp = (e: MouseEvent | PointerEvent) => {
       if (!isLoadedRef.current) return;
       if (!stateRef.current.isDragging) return;
       stateRef.current.isDragging = false;
@@ -1170,10 +1192,21 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
 
     window.addEventListener('resize', handleResize);
     window.addEventListener('scroll', updateBounds, { passive: true });
-    container.addEventListener('mousemove', handleMouseMove);
-    container.addEventListener('mouseleave', handleMouseLeave);
-    container.addEventListener('mousedown', handleMouseDown);
-    window.addEventListener('mouseup', handleMouseUp);
+    container.style.touchAction = 'none';
+    const isPointerSupported = typeof window !== 'undefined' && 'PointerEvent' in window;
+
+    if (isPointerSupported) {
+      container.addEventListener('pointermove', handleMouseMove);
+      container.addEventListener('pointerleave', handleMouseLeave);
+      container.addEventListener('pointerdown', handleMouseDown);
+      window.addEventListener('pointerup', handleMouseUp);
+      window.addEventListener('pointercancel', handleMouseUp);
+    } else {
+      container.addEventListener('mousemove', handleMouseMove);
+      container.addEventListener('mouseleave', handleMouseLeave);
+      container.addEventListener('mousedown', handleMouseDown);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
     container.addEventListener('wheel', handleWheel, { passive: false });
     renderer.domElement.addEventListener('webglcontextlost', handleContextLost, false);
     renderer.domElement.addEventListener('webglcontextrestored', handleContextRestored, false);
@@ -1184,10 +1217,18 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('scroll', updateBounds);
-      container.removeEventListener('mousemove', handleMouseMove);
-      container.removeEventListener('mouseleave', handleMouseLeave);
-      container.removeEventListener('mousedown', handleMouseDown);
-      window.removeEventListener('mouseup', handleMouseUp);
+      if (isPointerSupported) {
+        container.removeEventListener('pointermove', handleMouseMove);
+        container.removeEventListener('pointerleave', handleMouseLeave);
+        container.removeEventListener('pointerdown', handleMouseDown);
+        window.removeEventListener('pointerup', handleMouseUp);
+        window.removeEventListener('pointercancel', handleMouseUp);
+      } else {
+        container.removeEventListener('mousemove', handleMouseMove);
+        container.removeEventListener('mouseleave', handleMouseLeave);
+        container.removeEventListener('mousedown', handleMouseDown);
+        window.removeEventListener('mouseup', handleMouseUp);
+      }
       container.removeEventListener('wheel', handleWheel);
       renderer.domElement.removeEventListener('webglcontextlost', handleContextLost);
       renderer.domElement.removeEventListener('webglcontextrestored', handleContextRestored);

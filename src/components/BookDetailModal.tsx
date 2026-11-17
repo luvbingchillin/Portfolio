@@ -1,4 +1,4 @@
-import { useEffect, type FC } from 'react';
+import { useEffect, useRef, type FC } from 'react';
 import type { ProjectBook } from '../types/book';
 import { BalancedText } from '../utils/textBalance';
 import { X, ExternalLink, Github, Layers, Award, ChevronLeft, ChevronRight, ArrowUp } from './Icons';
@@ -10,6 +10,7 @@ export interface BookDetailModalProps {
   onClose: () => void;
   onSelectPrev?: () => void;
   onSelectNext?: () => void;
+  isClosing?: boolean;
 }
 
 export const BookDetailModal: FC<BookDetailModalProps> = ({
@@ -18,20 +19,55 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({
   totalCount,
   onClose,
   onSelectPrev,
-  onSelectNext
+  onSelectNext,
+  isClosing = false
 }) => {
+  const modalRef = useRef<HTMLDivElement>(null);
+  const closeBtnRef = useRef<HTMLButtonElement>(null);
+  const prevActiveElementRef = useRef<HTMLElement | null>(null);
+
   useEffect(() => {
+    prevActiveElementRef.current = document.activeElement as HTMLElement | null;
+    closeBtnRef.current?.focus();
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         onClose();
+      } else if (e.key === 'Tab' && modalRef.current) {
+        const focusable = Array.from(
+          modalRef.current.querySelectorAll<HTMLElement>(
+            'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+          )
+        ).filter((el) => el.offsetParent !== null || el === document.activeElement);
+
+        if (focusable.length > 0) {
+          const first = focusable[0];
+          const last = focusable[focusable.length - 1];
+
+          if (e.shiftKey) {
+            if (document.activeElement === first || !modalRef.current.contains(document.activeElement)) {
+              e.preventDefault();
+              last.focus();
+            }
+          } else {
+            if (document.activeElement === last || !modalRef.current.contains(document.activeElement)) {
+              e.preventDefault();
+              first.focus();
+            }
+          }
+        }
       } else if (e.key === 'ArrowLeft' && onSelectPrev && currentIndex > 0) {
         onSelectPrev();
       } else if (e.key === 'ArrowRight' && onSelectNext && currentIndex < totalCount - 1) {
         onSelectNext();
       }
     };
+
     window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      prevActiveElementRef.current?.focus?.();
+    };
   }, [onClose, onSelectPrev, onSelectNext, currentIndex, totalCount]);
 
   if (!book) return null;
@@ -41,7 +77,10 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({
 
   return (
     <div
-      className="monograph-page-viewport fixed inset-0 z-50 w-screen h-screen bg-[#fcf9f2] text-[#1a1614] overflow-y-auto animate-folio-fade-in flex flex-col selection:bg-[#891a20] selection:text-white"
+      ref={modalRef}
+      className={`monograph-page-viewport fixed inset-0 z-50 w-screen h-screen bg-[#fcf9f2] text-[#1a1614] overflow-y-auto flex flex-col selection:bg-[#891a20] selection:text-white ${
+        isClosing ? 'animate-folio-out pointer-events-none' : 'animate-folio-in'
+      }`}
       role="dialog"
       aria-modal="true"
       aria-label={`${book.title} Monograph Details`}
@@ -54,7 +93,7 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({
       />
 
       {/* 2. Top Header Bar (Full Bleed Paper Margin) */}
-      <header className="relative z-20 w-full bg-[#f4ece0] border-b border-[#ded5c0] px-4 sm:px-8 py-3 flex items-center justify-between shrink-0 shadow-2xs">
+      <header className="relative z-20 w-full bg-[#f4ece0] border-b border-[#ded5c0] px-4 sm:px-8 py-3 flex items-center justify-between shrink-0 shadow-2xs animate-stagger-1">
         <div className="flex items-center gap-3 text-[10px] font-eyebrow uppercase tracking-[0.20em] text-[#7d7162]">
           <span className="text-[#891a20] font-bold">§ {String(currentIndex + 1).padStart(2, '0')}</span>
           <span className="hidden sm:inline">ATHENAEUM ARCHIVAL MONOGRAPH //</span>
@@ -64,7 +103,7 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={onClose}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xs bg-[#fcf9f2] hover:bg-white text-[#1a1614] border border-[#d5caa8] transition-all cursor-pointer shadow-2xs hover:border-[#891a20]/60 hover:text-[#891a20] text-[11px] font-eyebrow uppercase tracking-[0.16em]"
+            className="min-h-[44px] flex items-center gap-2 px-3 py-1.5 rounded-xs bg-[#fcf9f2] hover:bg-white text-[#1a1614] border border-[#d5caa8] transition-all cursor-pointer shadow-2xs hover:border-[#891a20]/60 hover:text-[#891a20] text-[11px] font-eyebrow uppercase tracking-[0.16em] focus-visible:outline-2 focus-visible:outline-[#891a20] focus-visible:outline-offset-2"
             title="Return to 3D Shelf (Esc)"
           >
             <ArrowUp className="w-3.5 h-3.5 text-[#891a20]" />
@@ -72,9 +111,11 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({
             <span className="text-[9px] text-[#8a7e6e] border border-[#ded5c0] px-1 rounded-xs">ESC</span>
           </button>
           <button
+            ref={closeBtnRef}
             onClick={onClose}
-            className="p-1.5 rounded-xs bg-[#fcf9f2] hover:bg-white text-[#1a1614] border border-[#d5caa8] transition-all cursor-pointer shadow-2xs hover:border-[#891a20]/60 hover:text-[#891a20]"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 rounded-xs bg-[#fcf9f2] hover:bg-white text-[#1a1614] border border-[#d5caa8] transition-all cursor-pointer shadow-2xs hover:border-[#891a20]/60 hover:text-[#891a20] focus-visible:outline-2 focus-visible:outline-[#891a20] focus-visible:outline-offset-2"
             title="Close Folio (Esc)"
+            aria-label="Close Folio (Esc)"
           >
             <X className="w-4 h-4" />
           </button>
@@ -82,8 +123,10 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({
       </header>
 
       {/* 3. Main Reading Chamber: The Centered Two-Page Parchment Spread */}
-      <main
-        className="relative z-10 w-full max-w-7xl mx-auto flex-1 p-4 sm:p-6 md:p-10 flex flex-col justify-center"
+      <div
+        role="region"
+        aria-label="Monograph Reading Chamber"
+        className="relative z-10 w-full max-w-7xl mx-auto flex-1 p-3 sm:p-6 md:p-8 flex flex-col justify-center my-auto min-h-0"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="relative w-full rounded-xs bg-[#fbf8f1] border border-[#dfd4bd] shadow-[0_20px_50px_rgba(40,30,20,0.12),0_2px_8px_rgba(40,30,20,0.06)] flex flex-col overflow-hidden">
@@ -94,7 +137,7 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({
           />
 
           {/* Crimson Bookmark Ribbon descending down the central spine fold */}
-          <div className="hidden md:block absolute top-0 left-1/2 -translate-x-1/2 w-3.5 h-14 bg-[#891a20] shadow-md z-30 pointer-events-none rounded-b-xs">
+          <div className="hidden md:block absolute top-0 left-1/2 -translate-x-1/2 w-3.5 h-16 bg-[#891a20] shadow-md z-30 pointer-events-none rounded-b-xs">
             <div className="absolute bottom-0 inset-x-0 h-1 bg-[#d4af37]/60" />
           </div>
 
@@ -104,15 +147,12 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({
           {/* ========================================================
               LEFT PAGE (VERSO): Exposition & Archival Metadata
              ======================================================== */}
-          <div className="relative p-6 sm:p-9 lg:p-12 bg-[#fbf8f1] shadow-[inset_-16px_0_24px_-12px_rgba(50,35,20,0.06)] flex flex-col justify-between space-y-8">
+          <div className="relative p-6 sm:p-8 md:p-10 lg:p-12 xl:p-14 bg-[#fbf8f1] shadow-[inset_-20px_0_30px_-15px_rgba(50,35,20,0.05)] flex flex-col justify-between animate-stagger-2">
             
-            {/* Inner Double-Hairline Margin Frame */}
-            <div className="absolute inset-3 sm:inset-5 border border-[#ded5c0]/50 pointer-events-none" />
-
-            <div className="space-y-6 relative">
+            <div className="space-y-6 sm:space-y-7 relative">
               
               {/* Running Folio Header (Left) */}
-              <div className="flex justify-between items-center text-[10px] font-eyebrow uppercase tracking-[0.22em] text-[#7d7162] border-b border-[#ded5c0] pb-2">
+              <div className="flex justify-between items-center text-[10px] font-eyebrow uppercase tracking-[0.22em] text-[#7d7162] border-b border-[#ded5c0] pb-2.5">
                 <span className="flex items-center gap-1.5">
                   <span className="text-[#891a20] font-bold">§ {String(currentIndex + 1).padStart(2, '0')}</span>
                   <span>MONOGRAPH // {book.category.toUpperCase()}</span>
@@ -120,62 +160,58 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({
                 <span>CURATED BY {book.curator.toUpperCase()}</span>
               </div>
 
-              {/* Classification Badges */}
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="px-2.5 py-0.5 rounded-xs text-[10px] font-eyebrow tracking-[0.20em] bg-[#1a1614] text-[#fbf8f1] uppercase">
+              {/* Classification Badges & Metadata Line */}
+              <div className="flex items-center gap-2.5 flex-wrap text-[10px] font-eyebrow tracking-[0.18em] text-[#5c5347] uppercase">
+                <span className="px-2.5 py-0.5 rounded-xs bg-[#1a1614] text-[#fbf8f1]">
                   {book.category}
                 </span>
-                <span className="text-[10px] font-eyebrow tracking-[0.20em] text-[#5c5347] uppercase border border-[#ded5c0] px-2.5 py-0.5 rounded-xs bg-[#f4eedf]">
+                <span className="text-[#8a7e6e]">•</span>
+                <span className="border border-[#ded5c0] px-2 py-0.5 rounded-xs bg-[#f4eedf]/80">
                   CALL NO. {book.callNumber}
                 </span>
-                <span className="text-[10px] font-eyebrow tracking-[0.20em] text-[#5c5347] uppercase border border-[#ded5c0] px-2.5 py-0.5 rounded-xs bg-[#f4eedf]">
-                  YEAR {book.year}
-                </span>
-                <span className="text-[10px] font-eyebrow tracking-[0.20em] text-[#5c5347] uppercase border border-[#ded5c0] px-2.5 py-0.5 rounded-xs bg-[#f4eedf]">
-                  {book.edition}
-                </span>
+                <span className="text-[#8a7e6e]">•</span>
+                <span>YEAR {book.year}</span>
+                <span className="text-[#8a7e6e]">•</span>
+                <span>{book.edition}</span>
               </div>
 
               {/* Title & Subtitle */}
-              <div className="space-y-2.5">
+              <div className="space-y-2">
                 <BalancedText
                   as="h2"
                   lines={2}
                   reserveLines={2}
-                  className="text-2xl sm:text-3xl lg:text-4xl font-heading font-normal uppercase text-[#1a1614] leading-[1.08] tracking-[-0.035em]"
+                  className="text-2xl sm:text-3xl lg:text-[2.5rem] font-heading font-normal uppercase text-[#1a1614] leading-[1.06] tracking-[-0.035em]"
                 >
                   {book.title}
                 </BalancedText>
 
-                <p className="text-sm sm:text-base font-body text-[#5c5246] tracking-[-0.02em] border-l-2 border-[#891a20] pl-3 py-0.5 leading-snug">
+                <p className="text-sm sm:text-base font-body text-[#5c5246] tracking-[-0.015em] leading-relaxed">
                   {book.subtitle}
                 </p>
               </div>
 
               {/* Illuminated Editorial Drop-Cap Synopsis */}
-              <div className="text-[#2b2520] font-body text-sm sm:text-base leading-relaxed text-justify tracking-[-0.02em] space-y-2.5 pt-1">
+              <div className="text-[#2b2520] font-body text-sm sm:text-[15px] leading-[1.75] tracking-[-0.015em] text-left pt-1">
                 <p>
-                  <span className="float-left text-5xl sm:text-6xl font-heading font-normal text-[#1a1614] leading-none pr-3 pt-0.5 font-serif select-none border-b-2 border-[#891a20]">
+                  <span className="float-left text-5xl sm:text-6xl font-heading font-normal text-[#1a1614] leading-none pr-3 pt-0.5 font-serif select-none">
                     {book.fullSynopsis.charAt(0)}
                   </span>
                   {book.fullSynopsis.slice(1)}
                 </p>
-                <p className="text-xs sm:text-sm text-[#665b4f] italic pt-1 border-t border-[#ded5c0]/60">
-                  {book.shortDescription}
-                </p>
               </div>
 
-              {/* Clean Archival Telemetry Metrics */}
-              <div className="space-y-2 pt-1">
-                <div className="text-[9px] font-eyebrow uppercase tracking-[0.20em] text-[#7d7162] pb-1 border-b border-[#ded5c0] flex justify-between">
+              {/* Clean Archival Telemetry Metrics (Typographic Table) */}
+              <div className="pt-4 border-t border-[#ded5c0]/70">
+                <div className="text-[9px] font-eyebrow uppercase tracking-[0.20em] text-[#7d7162] pb-2 flex justify-between">
                   <span>ARCHIVAL TELEMETRY</span>
                   <span className="text-[#891a20]">TABLE 01</span>
                 </div>
-                <div className="grid grid-cols-3 gap-2 sm:gap-2.5">
+                <div className="grid grid-cols-3 divide-x divide-[#ded5c0] pt-1">
                   {book.metrics.map((m, i) => (
-                    <div key={i} className="p-2.5 sm:p-3 rounded-xs bg-[#f4ece0]/85 border border-[#dfd5c1] text-center shadow-2xs">
-                      <div className="text-[9px] font-eyebrow uppercase tracking-[0.18em] text-[#786d5e]">{m.label}</div>
-                      <div className="text-base sm:text-lg font-heading font-normal text-[#1a1614] mt-0.5 tabular-nums">{m.value}</div>
+                    <div key={i} className={`px-3 py-1 ${i === 0 ? 'pl-0' : ''} ${i === 2 ? 'pr-0 text-right' : i === 1 ? 'text-center' : 'text-left'}`}>
+                      <div className="text-[9px] font-eyebrow uppercase tracking-[0.16em] text-[#786d5e]">{m.label}</div>
+                      <div className="text-base sm:text-lg lg:text-xl font-heading font-normal text-[#1a1614] mt-0.5 tabular-nums">{m.value}</div>
                     </div>
                   ))}
                 </div>
@@ -184,7 +220,7 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({
             </div>
 
             {/* Verso Folio Foot */}
-            <div className="pt-3 border-t border-[#ded5c0] flex justify-between items-center text-[10px] font-eyebrow uppercase tracking-[0.20em] text-[#8a7e6e] relative">
+            <div className="pt-4 mt-6 border-t border-[#ded5c0] flex justify-between items-center text-[10px] font-eyebrow uppercase tracking-[0.20em] text-[#8a7e6e] relative">
               <span>{book.stackShelf.toUpperCase()}</span>
               <span className="font-serif italic font-normal text-xs text-[#5c5246]">— {leftPageNum} —</span>
             </div>
@@ -193,32 +229,29 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({
           {/* ========================================================
               RIGHT PAGE (RECTO): Systems, Stack & Live Actions
              ======================================================== */}
-          <div className="relative p-6 sm:p-9 lg:p-12 bg-[#fbf8f1] shadow-[inset_16px_0_24px_-12px_rgba(50,35,20,0.06)] flex flex-col justify-between space-y-8">
+          <div className="relative p-6 sm:p-8 md:p-10 lg:p-12 xl:p-14 bg-[#fbf8f1] shadow-[inset_20px_0_30px_-15px_rgba(50,35,20,0.05)] flex flex-col justify-between animate-stagger-3">
             
-            {/* Inner Double-Hairline Margin Frame */}
-            <div className="absolute inset-3 sm:inset-5 border border-[#ded5c0]/50 pointer-events-none" />
-
-            <div className="space-y-6 relative">
+            <div className="space-y-6 sm:space-y-7 relative">
               
               {/* Running Folio Header (Right) */}
-              <div className="flex justify-between items-center text-[10px] font-eyebrow uppercase tracking-[0.22em] text-[#7d7162] border-b border-[#ded5c0] pb-2">
+              <div className="flex justify-between items-center text-[10px] font-eyebrow uppercase tracking-[0.22em] text-[#7d7162] border-b border-[#ded5c0] pb-2.5">
                 <span>ATELIER SPECIFICATION & ARCHITECTURE</span>
                 <span className="text-[#891a20]">SECTION // B</span>
               </div>
 
-              {/* Key Highlights & Architectural Treatises */}
-              <div className="p-4 sm:p-5 bg-[#f4ede0]/90 rounded-xs border border-[#ded5c0] shadow-2xs space-y-3">
-                <div className="text-[10px] font-eyebrow uppercase tracking-[0.20em] text-[#1a1614] flex items-center justify-between border-b border-[#dfd5c1] pb-2">
+              {/* Key Highlights & Architectural Treatises (Open, serene layout) */}
+              <div className="space-y-3">
+                <div className="text-[10px] font-eyebrow uppercase tracking-[0.20em] text-[#1a1614] flex items-center justify-between border-b border-[#ded5c0]/70 pb-2">
                   <span className="flex items-center gap-1.5">
                     <Award className="w-3.5 h-3.5 text-[#891a20]" />
                     Key Treatises & System Notes
                   </span>
-                  <span className="font-mono text-[9px] text-[#786d5e]">4 ENTRIES</span>
+                  <span className="font-mono text-[9px] text-[#786d5e]">{book.keyFeatures.length} ENTRIES</span>
                 </div>
 
-                <ul className="space-y-2">
+                <ul className="space-y-2.5 pt-1">
                   {book.keyFeatures.map((feat, idx) => (
-                    <li key={idx} className="text-xs sm:text-sm font-body text-[#2b2520] flex items-start gap-2 tracking-[-0.015em] leading-snug">
+                    <li key={idx} className="text-xs sm:text-[13.5px] font-body text-[#2b2520] flex items-start gap-2.5 tracking-[-0.015em] leading-relaxed">
                       <span className="text-[#891a20] font-mono text-xs font-bold shrink-0 mt-0.5">0{idx + 1}.</span>
                       <span>{feat}</span>
                     </li>
@@ -227,17 +260,17 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({
               </div>
 
               {/* Applied Technologies & Stack Ingredients */}
-              <div className="p-4 sm:p-5 bg-[#f4ede0]/90 rounded-xs border border-[#ded5c0] shadow-2xs space-y-2.5">
-                <div className="text-[10px] font-eyebrow uppercase tracking-[0.20em] text-[#1a1614] flex items-center gap-1.5 border-b border-[#dfd5c1] pb-2">
+              <div className="space-y-2.5 pt-1">
+                <div className="text-[10px] font-eyebrow uppercase tracking-[0.20em] text-[#1a1614] flex items-center gap-1.5 border-b border-[#ded5c0]/70 pb-2">
                   <Layers className="w-3.5 h-3.5 text-[#891a20]" />
                   <span>Applied Technologies & Stack</span>
                 </div>
 
-                <div className="flex flex-wrap gap-1.5 pt-0.5">
+                <div className="flex flex-wrap gap-2 pt-1">
                   {book.techStack.map((tech, idx) => (
                     <span
                       key={idx}
-                      className="px-2.5 py-0.5 rounded-xs text-[10px] font-eyebrow uppercase tracking-[0.14em] bg-[#f8f3e8] text-[#2c2621] border border-[#d8cca8] hover:border-[#891a20]/60 transition-colors shadow-3xs"
+                      className="px-2.5 py-1 rounded-xs text-[10px] font-eyebrow uppercase tracking-[0.14em] bg-[#f4ede0]/70 text-[#2c2621] border border-[#d8cca8] hover:border-[#891a20]/60 transition-colors shadow-3xs"
                     >
                       {tech}
                     </span>
@@ -245,32 +278,32 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({
                 </div>
               </div>
 
-              {/* Physical Book Material Specifications */}
-              <div className="p-3.5 rounded-xs bg-[#f4ecd9]/70 border border-[#dfd5c1] text-[10px] font-eyebrow uppercase tracking-[0.18em] text-[#6b6051] space-y-1">
-                <div className="flex justify-between">
-                  <span>BINDING MATERIAL:</span>
+              {/* Physical Book Material Specifications (Elegant Colophon Footnote) */}
+              <div className="pt-3 pb-1 border-t border-[#ded5c0]/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[10px] font-eyebrow uppercase tracking-[0.16em] text-[#6b6051]">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[#8a7e6e]">BINDING:</span>
                   <span className="text-[#1a1614] font-medium flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full inline-block border border-black/20" style={{ backgroundColor: book.coverColor }} />
-                    {book.coverColor}
+                    {book.bindingMaterial || book.coverColor}
                   </span>
                 </div>
-                <div className="flex justify-between">
-                  <span>GILDED FOIL ACCENT:</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[#8a7e6e]">FOIL:</span>
                   <span className="text-[#1a1614] font-medium flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full inline-block border border-black/20" style={{ backgroundColor: book.accentColor }} />
-                    {book.accentColor}
+                    {book.foilMaterial || book.accentColor}
                   </span>
                 </div>
               </div>
 
               {/* Action Links */}
-              <div className="flex items-center gap-2.5 pt-0.5 flex-wrap">
+              <div className="flex items-center gap-3 pt-1 flex-wrap">
                 {book.githubUrl && (
                   <a
                     href={book.githubUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-3.5 py-2 rounded-xs bg-[#1a1614] text-[#fbf8f1] hover:bg-[#891a20] transition-colors text-xs font-eyebrow uppercase tracking-[0.18em] shadow-xs cursor-pointer"
+                    className="min-h-[44px] flex items-center gap-2 px-4 py-2 rounded-xs bg-[#1a1614] text-[#fbf8f1] hover:bg-[#891a20] transition-colors text-xs font-eyebrow uppercase tracking-[0.18em] shadow-xs cursor-pointer focus-visible:outline-2 focus-visible:outline-[#891a20] focus-visible:outline-offset-2"
                   >
                     <Github className="w-3.5 h-3.5" />
                     <span>Source Code</span>
@@ -281,7 +314,7 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({
                     href={book.liveUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-3.5 py-2 rounded-xs bg-[#f4ece0] hover:bg-[#ede3d3] text-[#1a1614] border border-[#d5caa8] transition-colors text-xs font-eyebrow uppercase tracking-[0.18em] shadow-xs cursor-pointer hover:border-[#891a20]/60"
+                    className="min-h-[44px] flex items-center gap-2 px-4 py-2 rounded-xs bg-[#f4ece0] hover:bg-[#ede3d3] text-[#1a1614] border border-[#d5caa8] transition-colors text-xs font-eyebrow uppercase tracking-[0.18em] shadow-xs cursor-pointer hover:border-[#891a20]/60 focus-visible:outline-2 focus-visible:outline-[#891a20] focus-visible:outline-offset-2"
                   >
                     <ExternalLink className="w-3.5 h-3.5 text-[#891a20]" />
                     <span>Live Deployment</span>
@@ -292,7 +325,7 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({
             </div>
 
             {/* Recto Folio Foot */}
-            <div className="pt-3 border-t border-[#ded5c0] flex justify-between items-center text-[10px] font-eyebrow uppercase tracking-[0.20em] text-[#8a7e6e] relative">
+            <div className="pt-4 mt-6 border-t border-[#ded5c0] flex justify-between items-center text-[10px] font-eyebrow uppercase tracking-[0.20em] text-[#8a7e6e] relative">
               <span className="font-serif italic font-normal text-xs text-[#5c5246]">— {rightPageNum} —</span>
               <span>KANG'S ATHENAEUM // MONOGRAPH</span>
             </div>
@@ -301,11 +334,11 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({
         </div>
 
         {/* BOTTOM FOLIO NAVIGATION BAR */}
-        <div className="p-3 sm:p-4 bg-[#f4ece0] border-t border-[#ded5c0] flex justify-between items-center gap-2">
+        <div className="p-3 sm:p-4 bg-[#f4ece0] border-t border-[#ded5c0] flex justify-between items-center gap-2 animate-stagger-4">
           <button
             onClick={onSelectPrev}
             disabled={!onSelectPrev || currentIndex === 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xs bg-[#fcf9f2] hover:bg-white text-[#2c2621] border border-[#d5caa8] disabled:opacity-40 disabled:cursor-not-allowed transition-all text-[11px] font-eyebrow uppercase tracking-[0.16em] cursor-pointer shadow-2xs"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xs bg-[#fcf9f2] hover:bg-white text-[#2c2621] border border-[#d5caa8] disabled:opacity-40 disabled:cursor-not-allowed transition-all text-[11px] font-eyebrow uppercase tracking-[0.16em] cursor-pointer shadow-2xs focus-visible:outline-2 focus-visible:outline-[#891a20] focus-visible:outline-offset-2"
           >
             <ChevronLeft className="w-3.5 h-3.5 text-[#891a20]" />
             <span>Prev</span>
@@ -313,7 +346,7 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({
 
           <button
             onClick={onClose}
-            className="flex items-center gap-2 px-4 py-1.5 rounded-xs bg-[#1a1614] hover:bg-[#891a20] text-[#fbf8f1] transition-all text-[11px] font-eyebrow uppercase tracking-[0.18em] cursor-pointer shadow-xs"
+            className="min-h-[44px] flex items-center gap-2 px-4 py-1.5 rounded-xs bg-[#1a1614] hover:bg-[#891a20] text-[#fbf8f1] transition-all text-[11px] font-eyebrow uppercase tracking-[0.18em] cursor-pointer shadow-xs focus-visible:outline-2 focus-visible:outline-[#891a20] focus-visible:outline-offset-2"
           >
             <ArrowUp className="w-3 h-3" />
             <span>Return to 3D Shelf</span>
@@ -322,7 +355,7 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({
           <button
             onClick={onSelectNext}
             disabled={!onSelectNext || currentIndex === totalCount - 1}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xs bg-[#fcf9f2] hover:bg-white text-[#2c2621] border border-[#d5caa8] disabled:opacity-40 disabled:cursor-not-allowed transition-all text-[11px] font-eyebrow uppercase tracking-[0.16em] cursor-pointer shadow-2xs"
+            className="min-h-[44px] min-w-[44px] flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xs bg-[#fcf9f2] hover:bg-white text-[#2c2621] border border-[#d5caa8] disabled:opacity-40 disabled:cursor-not-allowed transition-all text-[11px] font-eyebrow uppercase tracking-[0.16em] cursor-pointer shadow-2xs focus-visible:outline-2 focus-visible:outline-[#891a20] focus-visible:outline-offset-2"
           >
             <span>Next</span>
             <ChevronRight className="w-3.5 h-3.5 text-[#891a20]" />
@@ -330,7 +363,7 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({
         </div>
 
       </div>
-      </main>
+      </div>
     </div>
   );
 };

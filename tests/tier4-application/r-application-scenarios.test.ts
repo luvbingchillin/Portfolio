@@ -69,13 +69,13 @@ test('Tier 4: Enhancement Real-World Application End-to-End Scenarios', async (t
     infoModel.step(100); // settle
     infoModel.step(400); // exit
     assert.strictEqual(infoModel.phase, 'entering');
-    assert.strictEqual(infoModel.currentBook.title, 'Autonomous Agents');
+    assert.strictEqual(infoModel.currentBook.title, BOOKS_CATALOG[3].title);
 
     infoModel.step(700); // entrance
     assert.strictEqual(infoModel.phase, 'idle');
     const display = formatMonographDisplayData(infoModel.currentBook);
-    assert.strictEqual(display.title, 'AUTONOMOUS AGENTS');
-    assert.strictEqual(display.rows[1].value, '2026');
+    assert.strictEqual(display.title, BOOKS_CATALOG[3].title.toUpperCase());
+    assert.strictEqual(display.rows[1].value, String(BOOKS_CATALOG[3].year));
   });
 
   await t.test('Scenario 3: Continuous keyboard traversal, spine inspection & modal reading', () => {

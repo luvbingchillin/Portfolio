@@ -160,12 +160,12 @@ export const EditorialInfoSection: FC<EditorialInfoSectionProps> = ({
       data-phase={phase}
     >
       {/* 1. UTC Chronometer & Archival Telemetry */}
-      <div className="info-telemetry experience_info-chronometer flex items-center justify-between text-[10px] font-mono tracking-[0.20em] text-[#78716c] pb-2 border-b border-black/10 mb-3 pointer-events-none">
+      <div className="info-telemetry experience_info-chronometer flex items-center justify-between text-[11px] font-mono tracking-[0.20em] text-[#78716c] pb-2 border-b border-black/10 mb-3 pointer-events-none">
         <span className="flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 rounded-full bg-[#891a20] experience_info-chronometer__pulse" />
           <span>UTC {liveTime}</span>
         </span>
-        <span className="text-[#a8a29e]">MONOGRAPH // 2026</span>
+        <span className="text-[#6e6863] font-medium">MONOGRAPH // 2026</span>
       </div>
 
       {/* 2. Display Serif Heading (Title) with Mask */}
@@ -203,7 +203,7 @@ export const EditorialInfoSection: FC<EditorialInfoSectionProps> = ({
                   data-disc-mask={phase}
                 >
                   <span
-                    className="subheading-xs custom-element experience_info-line experience_info-label font-eyebrow text-[10px] uppercase text-[#57534e] tracking-[0.20em] block"
+                    className="subheading-xs custom-element experience_info-line experience_info-label font-eyebrow text-[11px] uppercase text-[#57534e] tracking-[0.20em] block"
                   >
                     {row.label}
                   </span>

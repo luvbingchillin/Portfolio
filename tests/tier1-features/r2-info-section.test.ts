@@ -40,10 +40,10 @@ test('Tier 1 - Feature R2: Top-Right Information Section Layout & Animation', as
   });
 
   await t.test('2.4 Stacked key-value metadata formatting and monograph binding', () => {
-    const book1 = BOOKS_CATALOG[1]; // Biomedical Vision
+    const book1 = BOOKS_CATALOG[1];
     const displayData = formatMonographDisplayData(book1, 'Kang Yuchen');
 
-    assert.strictEqual(displayData.title, 'BIOMEDICAL VISION');
+    assert.strictEqual(displayData.title, BOOKS_CATALOG[1].title.toUpperCase());
     assert.strictEqual(displayData.rows.length, 4, 'Must present exactly 4 key-value metadata rows');
 
     // Row 0: CURATED BY
@@ -52,15 +52,15 @@ test('Tier 1 - Feature R2: Top-Right Information Section Layout & Animation', as
 
     // Row 1: YEAR
     assert.strictEqual(displayData.rows[1].label, 'YEAR');
-    assert.strictEqual(displayData.rows[1].value, '2025');
+    assert.strictEqual(displayData.rows[1].value, String(BOOKS_CATALOG[1].year));
 
     // Row 2: CATEGORY
     assert.strictEqual(displayData.rows[2].label, 'CATEGORY');
-    assert.strictEqual(displayData.rows[2].value, 'MACHINE LEARNING');
+    assert.strictEqual(displayData.rows[2].value, BOOKS_CATALOG[1].category.toUpperCase());
 
     // Row 3: CALL NUMBER
     assert.strictEqual(displayData.rows[3].label, 'CALL NUMBER');
-    assert.strictEqual(displayData.rows[3].value, 'RC 78.7 .D53 2025');
+    assert.strictEqual(displayData.rows[3].value, BOOKS_CATALOG[1].callNumber);
   });
 
   await t.test('2.5 Masked exit animation parameters (0.4s, yPercent: -120%, divider collapse)', () => {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { BOOKS_CATALOG } from './data/booksData.ts';
 import { LibraryScene } from './components/LibraryScene.tsx';
 import { LibraryUI } from './components/LibraryUI.tsx';
@@ -10,6 +10,9 @@ export function App() {
   const [isFlipped, setIsFlipped] = useState(false);
   const [isOpening, setIsOpening] = useState(false);
   const [isSpreadOpen, setIsSpreadOpen] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
+  const openTimeoutRef = useRef<number | null>(null);
+  const closeTimeoutRef = useRef<number | null>(null);
 
   // Preloader & Boot Sequence State
   const [isLoaded, setIsLoaded] = useState(false);
@@ -25,18 +28,39 @@ export function App() {
   }, []);
 
   const handleOpenSpread = useCallback(() => {
+    if (isClosing) return;
+    if (closeTimeoutRef.current) {
+      clearTimeout(closeTimeoutRef.current);
+      closeTimeoutRef.current = null;
+    }
     setIsOpening(true);
-    // Reference site handover timing (380ms): allow 3D book cover to smoothly open
-    // towards the camera, then transition cleanly into the solid full-screen monograph spread
-    const timer = window.setTimeout(() => {
+    if (openTimeoutRef.current) clearTimeout(openTimeoutRef.current);
+    openTimeoutRef.current = window.setTimeout(() => {
       setIsSpreadOpen(true);
+      openTimeoutRef.current = null;
     }, 380);
-    return () => clearTimeout(timer);
-  }, []);
+  }, [isClosing]);
 
   const handleCloseSpread = useCallback(() => {
-    setIsSpreadOpen(false);
+    if (openTimeoutRef.current) {
+      clearTimeout(openTimeoutRef.current);
+      openTimeoutRef.current = null;
+    }
     setIsOpening(false);
+    setIsClosing(true);
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    closeTimeoutRef.current = window.setTimeout(() => {
+      setIsSpreadOpen(false);
+      setIsClosing(false);
+      closeTimeoutRef.current = null;
+    }, 220);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (openTimeoutRef.current) clearTimeout(openTimeoutRef.current);
+      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    };
   }, []);
 
   const handleSelectIndex = useCallback((index: number) => {
@@ -97,7 +121,11 @@ export function App() {
     <main className="relative w-screen h-screen bg-white text-[#171c1c] font-body overflow-hidden selection:bg-[#891a20] selection:text-white">
       
       {/* 3D WebGL Library Stage */}
-      <div className="relative w-full h-full overflow-hidden">
+      <div
+        className="relative w-full h-full overflow-hidden"
+        inert={isSpreadOpen && !isClosing ? true : undefined}
+        aria-hidden={isSpreadOpen && !isClosing}
+      >
         <LibraryScene
           books={BOOKS_CATALOG}
           activeIndex={activeIndex}
@@ -108,7 +136,7 @@ export function App() {
           onOpenSpread={handleOpenSpread}
           onFlip={handleFlip}
           isModalOpen={isOpening || isSpreadOpen}
-          isOpen={isOpening || isSpreadOpen}
+          isOpen={isOpening || (isSpreadOpen && !isClosing)}
         />
 
         {/* Preloader Screen */}
@@ -143,6 +171,7 @@ export function App() {
           onClose={handleCloseSpread}
           onSelectPrev={handlePrevBook}
           onSelectNext={handleNextBook}
+          isClosing={isClosing}
         />
       )}
 

@@ -211,6 +211,471 @@ async function addLeatherGrainAsync(
 // 6. Front Cover Texture (Sync & Async)
 // ============================================================================
 
+function drawRoundedRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number
+): void {
+  if (typeof ctx.roundRect === 'function') {
+    ctx.roundRect(x, y, w, h, r);
+  } else {
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    if (typeof ctx.arcTo === 'function') {
+      ctx.arcTo(x + w, y, x + w, y + r, r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+      ctx.lineTo(x + r, y + h);
+      ctx.arcTo(x, y + h, x, y + h - r, r);
+      ctx.lineTo(x, y + r);
+      ctx.arcTo(x, y, x + r, y, r);
+    } else {
+      ctx.lineTo(x + w, y);
+      ctx.lineTo(x + w, y + h);
+      ctx.lineTo(x, y + h);
+      ctx.closePath();
+    }
+  }
+}
+
+function safeSetLineDash(ctx: CanvasRenderingContext2D, segments: number[]): void {
+  if (typeof ctx.setLineDash === 'function') {
+    ctx.setLineDash(segments);
+  }
+}
+
+function safeEllipse(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  rx: number,
+  ry: number,
+  rot = 0,
+  start = 0,
+  end = Math.PI * 2
+): void {
+  if (typeof ctx.ellipse === 'function') {
+    ctx.ellipse(x, y, rx, ry, rot, start, end);
+  } else {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rot);
+    ctx.scale(1, ry / (rx || 1));
+    ctx.arc(0, 0, rx, start, end);
+    ctx.restore();
+  }
+}
+
+/**
+ * 1. AST Syntax Tree & Inverted Index Radar (Code Search Engine)
+ */
+function drawCodeSearchEmblem(ctx: CanvasRenderingContext2D, foil: string): void {
+  ctx.strokeStyle = foil;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.arc(0, 0, 92, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.lineWidth = 1.2;
+  safeSetLineDash(ctx, [4, 6]);
+  ctx.beginPath();
+  ctx.arc(0, 0, 78, 0, Math.PI * 2);
+  ctx.stroke();
+  safeSetLineDash(ctx, []);
+
+  const drawNode = (x: number, y: number, r: number, fill = false) => {
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    if (fill) {
+      ctx.fillStyle = foil;
+      ctx.fill();
+    }
+    ctx.stroke();
+  };
+
+  const rootX = 0, rootY = -48;
+  const l1LeftX = -36, l1LeftY = -12;
+  const l1RightX = 36, l1RightY = -12;
+  const l2A = -52, l2AY = 30;
+  const l2B = -20, l2BY = 30;
+  const l2C = 20, l2CY = 30;
+  const l2D = 52, l2DY = 30;
+
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(rootX, rootY); ctx.lineTo(l1LeftX, l1LeftY);
+  ctx.moveTo(rootX, rootY); ctx.lineTo(l1RightX, l1RightY);
+  ctx.moveTo(l1LeftX, l1LeftY); ctx.lineTo(l2A, l2AY);
+  ctx.moveTo(l1LeftX, l1LeftY); ctx.lineTo(l2B, l2BY);
+  ctx.moveTo(l1RightX, l1RightY); ctx.lineTo(l2C, l2CY);
+  ctx.moveTo(l1RightX, l1RightY); ctx.lineTo(l2D, l2DY);
+  ctx.stroke();
+
+  drawNode(rootX, rootY, 9, true);
+  drawNode(l1LeftX, l1LeftY, 7, false);
+  drawNode(l1RightX, l1RightY, 7, false);
+  drawNode(l2A, l2AY, 5, true);
+  drawNode(l2B, l2BY, 5, true);
+  drawNode(l2C, l2CY, 5, true);
+  drawNode(l2D, l2DY, 5, true);
+
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(-68, -25); ctx.lineTo(-80, -25); ctx.lineTo(-80, 25); ctx.lineTo(-68, 25);
+  ctx.moveTo(68, -25); ctx.lineTo(80, -25); ctx.lineTo(80, 25); ctx.lineTo(68, 25);
+  ctx.stroke();
+
+  ctx.font = '700 16px "JetBrains Mono", monospace';
+  ctx.textAlign = 'center';
+  ctx.fillStyle = foil;
+  ctx.fillText('< AST // IDX >', 0, 64);
+}
+
+/**
+ * 2. Magic: The Gathering Card Draft Sigil (CardDrafter)
+ */
+function drawCardDrafterEmblem(ctx: CanvasRenderingContext2D, foil: string): void {
+  ctx.strokeStyle = foil;
+  ctx.lineWidth = 2.5;
+
+  ctx.beginPath();
+  ctx.arc(0, 0, 92, 0, Math.PI * 2);
+  ctx.stroke();
+
+  for (let i = 0; i < 4; i++) {
+    const angle = (i * Math.PI) / 2;
+    const px = Math.cos(angle) * 92;
+    const py = Math.sin(angle) * 92;
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.rotate(angle);
+    ctx.beginPath();
+    ctx.moveTo(-5, 0); ctx.lineTo(0, -6); ctx.lineTo(5, 0); ctx.lineTo(0, 6);
+    ctx.closePath();
+    ctx.fillStyle = foil;
+    ctx.fill();
+    ctx.restore();
+  }
+
+  const drawCardOutline = (angleRad: number, scale = 1, isCenter = false) => {
+    ctx.save();
+    ctx.rotate(angleRad);
+    ctx.scale(scale, scale);
+    const cardW = 50;
+    const cardH = 74;
+    const r = 5;
+
+    if (isCenter) {
+      ctx.fillStyle = foil;
+      ctx.globalAlpha = 0.15;
+      ctx.beginPath();
+      drawRoundedRect(ctx, -cardW / 2, -cardH / 2, cardW, cardH, r);
+      ctx.fill();
+      ctx.globalAlpha = 1.0;
+    }
+
+    ctx.strokeStyle = foil;
+    ctx.lineWidth = isCenter ? 2.5 : 1.5;
+    ctx.beginPath();
+    drawRoundedRect(ctx, -cardW / 2, -cardH / 2, cardW, cardH, r);
+    ctx.stroke();
+
+    ctx.lineWidth = 1;
+    ctx.strokeRect(-cardW / 2 + 5, -cardH / 2 + 6, cardW - 10, 36);
+
+    if (isCenter) {
+      ctx.beginPath();
+      safeEllipse(ctx, 0, -cardH / 2 + 24, 14, 11, 0, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.moveTo(0, -cardH / 2 + 15);
+      ctx.lineTo(6, -cardH / 2 + 24);
+      ctx.lineTo(0, -cardH / 2 + 33);
+      ctx.lineTo(-6, -cardH / 2 + 24);
+      ctx.closePath();
+      ctx.fillStyle = foil;
+      ctx.fill();
+
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(-cardW / 2 + 8, cardH / 2 - 20); ctx.lineTo(cardW / 2 - 8, cardH / 2 - 20);
+      ctx.moveTo(-cardW / 2 + 8, cardH / 2 - 13); ctx.lineTo(cardW / 2 - 8, cardH / 2 - 13);
+      ctx.moveTo(-cardW / 2 + 8, cardH / 2 - 6);  ctx.lineTo(cardW / 2 - 18, cardH / 2 - 6);
+      ctx.stroke();
+    }
+    ctx.restore();
+  };
+
+  drawCardOutline(-0.28, 0.92, false);
+  drawCardOutline(0.28, 0.92, false);
+  drawCardOutline(0, 1.0, true);
+}
+
+/**
+ * 3. Enterprise AI & Talent Neural Growth Nexus (AutomateAI)
+ */
+function drawAutomateAIEmblem(ctx: CanvasRenderingContext2D, foil: string): void {
+  ctx.strokeStyle = foil;
+  ctx.lineWidth = 2.5;
+
+  ctx.beginPath();
+  ctx.arc(0, 0, 92, 0, Math.PI * 2);
+  ctx.stroke();
+
+  for (let i = 0; i < 12; i++) {
+    const angle = (i * Math.PI) / 6;
+    const x = Math.cos(angle) * 92;
+    const y = Math.sin(angle) * 92;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    ctx.fillStyle = foil;
+    ctx.fillRect(-3, -4, 6, 8);
+    ctx.restore();
+  }
+
+  ctx.lineWidth = 1.2;
+  safeSetLineDash(ctx, [3, 4]);
+  ctx.beginPath();
+  ctx.arc(0, 0, 75, 0, Math.PI * 2);
+  ctx.stroke();
+  safeSetLineDash(ctx, []);
+
+  const hexRadius = 45;
+  const nodes: [number, number][] = [];
+  for (let i = 0; i < 6; i++) {
+    const angle = (i * Math.PI) / 3 - Math.PI / 6;
+    nodes.push([Math.cos(angle) * hexRadius, Math.sin(angle) * hexRadius]);
+  }
+
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  nodes.forEach(([x, y]) => {
+    ctx.moveTo(0, 0); ctx.lineTo(x, y);
+  });
+  for (let i = 0; i < 6; i++) {
+    const [x1, y1] = nodes[i];
+    const [x2, y2] = nodes[(i + 1) % 6];
+    ctx.moveTo(x1, y1); ctx.lineTo(x2, y2);
+  }
+  ctx.stroke();
+
+  nodes.forEach(([x, y]) => {
+    ctx.beginPath();
+    ctx.arc(x, y, 5, 0, Math.PI * 2);
+    ctx.fillStyle = foil;
+    ctx.fill();
+    ctx.stroke();
+  });
+
+  ctx.save();
+  ctx.beginPath();
+  const r1 = 18;
+  const r2 = 6;
+  for (let i = 0; i < 4; i++) {
+    const a1 = (i * Math.PI) / 2;
+    const a2 = a1 + Math.PI / 4;
+    if (i === 0) ctx.moveTo(Math.cos(a1) * r1, Math.sin(a1) * r1);
+    else ctx.lineTo(Math.cos(a1) * r1, Math.sin(a1) * r1);
+    ctx.lineTo(Math.cos(a2) * r2, Math.sin(a2) * r2);
+  }
+  ctx.closePath();
+  ctx.fillStyle = foil;
+  ctx.fill();
+  ctx.restore();
+
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(-28, 62); ctx.lineTo(0, 48); ctx.lineTo(28, 62);
+  ctx.moveTo(-20, 72); ctx.lineTo(0, 58); ctx.lineTo(20, 72);
+  ctx.stroke();
+}
+
+/**
+ * 4. Illuminated Open Tome & Celestial Storyteller (A New Story)
+ */
+function drawANewStoryEmblem(ctx: CanvasRenderingContext2D, foil: string): void {
+  ctx.strokeStyle = foil;
+  ctx.lineWidth = 2.5;
+
+  ctx.beginPath();
+  ctx.arc(0, 0, 92, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.lineWidth = 1;
+  safeSetLineDash(ctx, [2, 5]);
+  ctx.beginPath();
+  ctx.arc(0, 0, 80, 0, Math.PI * 2);
+  ctx.stroke();
+  safeSetLineDash(ctx, []);
+
+  ctx.save();
+  ctx.translate(0, -48);
+  ctx.beginPath();
+  for (let i = 0; i < 8; i++) {
+    const angle = (i * Math.PI) / 4;
+    const r = i % 2 === 0 ? 14 : 5;
+    const x = Math.cos(angle) * r;
+    const y = Math.sin(angle) * r;
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fillStyle = foil;
+  ctx.fill();
+
+  ctx.strokeStyle = foil;
+  ctx.lineWidth = 1.2;
+  const rays = [-0.6, -0.3, 0.3, 0.6];
+  rays.forEach((rAngle) => {
+    const rx = Math.sin(rAngle) * 32;
+    const ry = Math.cos(rAngle) * 25;
+    ctx.beginPath();
+    ctx.moveTo(Math.sin(rAngle) * 16, Math.cos(rAngle) * 12);
+    ctx.lineTo(rx, ry);
+    ctx.stroke();
+  });
+  ctx.restore();
+
+  ctx.save();
+  ctx.translate(0, 8);
+  ctx.lineWidth = 2.5;
+
+  ctx.beginPath();
+  ctx.moveTo(0, 32);
+  ctx.bezierCurveTo(-20, 32, -45, 26, -58, 20);
+  ctx.lineTo(-58, -18);
+  ctx.bezierCurveTo(-45, -12, -20, -6, 0, -8);
+  ctx.closePath();
+  ctx.stroke();
+
+  ctx.beginPath();
+  ctx.moveTo(0, 32);
+  ctx.bezierCurveTo(20, 32, 45, 26, 58, 20);
+  ctx.lineTo(58, -18);
+  ctx.bezierCurveTo(45, -12, 20, -6, 0, -8);
+  ctx.closePath();
+  ctx.stroke();
+
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, -8); ctx.lineTo(0, 36);
+  ctx.stroke();
+
+  ctx.lineWidth = 1;
+  for (let i = 0; i < 3; i++) {
+    const yOffset = -2 + i * 8;
+    ctx.beginPath();
+    ctx.moveTo(-48, yOffset); ctx.lineTo(-12, yOffset + 2);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(12, yOffset + 2); ctx.lineTo(48, yOffset);
+    ctx.stroke();
+  }
+  ctx.restore();
+
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, 44);
+  ctx.bezierCurveTo(-6, 54, 8, 62, 0, 72);
+  ctx.stroke();
+}
+
+/**
+ * 5. Classical Athenaeum Archway & Library Vault Key (Portfolio Archive)
+ */
+function drawPortfolioArchiveEmblem(ctx: CanvasRenderingContext2D, foil: string): void {
+  ctx.strokeStyle = foil;
+  ctx.lineWidth = 2.5;
+
+  ctx.beginPath();
+  ctx.arc(0, 0, 92, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.lineWidth = 1.2;
+  ctx.beginPath();
+  ctx.arc(0, 0, 80, 0, Math.PI * 2);
+  ctx.stroke();
+
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(0, -62);
+  ctx.lineTo(-44, -32);
+  ctx.lineTo(44, -32);
+  ctx.closePath();
+  ctx.stroke();
+
+  ctx.lineWidth = 1;
+  for (let a = -Math.PI / 4; a <= Math.PI / 4; a += Math.PI / 8) {
+    ctx.beginPath();
+    ctx.moveTo(0, -56);
+    ctx.lineTo(Math.sin(a) * 16, -56 + Math.cos(a) * 14);
+    ctx.stroke();
+  }
+
+  ctx.lineWidth = 2;
+  ctx.strokeRect(-42, -32, 10, 72);
+  ctx.strokeRect(32, -32, 10, 72);
+
+  ctx.beginPath();
+  ctx.arc(0, -10, 32, Math.PI, 0, false);
+  ctx.stroke();
+
+  ctx.fillStyle = foil;
+  ctx.beginPath();
+  ctx.moveTo(-5, -42); ctx.lineTo(5, -42); ctx.lineTo(4, -34); ctx.lineTo(-4, -34);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(0, -6, 10, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(0, 4); ctx.lineTo(0, 34);
+  ctx.moveTo(0, 24); ctx.lineTo(8, 24); ctx.lineTo(8, 28); ctx.lineTo(0, 28);
+  ctx.moveTo(0, 30); ctx.lineTo(10, 30); ctx.lineTo(10, 34); ctx.lineTo(0, 34);
+  ctx.stroke();
+
+  ctx.strokeRect(-48, 40, 96, 6);
+}
+
+function drawProjectFrontEmblem(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  cy: number,
+  book: ProjectBook,
+  foil: string
+): void {
+  ctx.save();
+  ctx.translate(width / 2, cy);
+
+  switch (book.id) {
+    case 'code-search':
+      drawCodeSearchEmblem(ctx, foil);
+      break;
+    case 'card-drafter':
+      drawCardDrafterEmblem(ctx, foil);
+      break;
+    case 'automate-ai':
+      drawAutomateAIEmblem(ctx, foil);
+      break;
+    case 'a-new-story':
+      drawANewStoryEmblem(ctx, foil);
+      break;
+    case 'portfolio-archive':
+    default:
+      drawPortfolioArchiveEmblem(ctx, foil);
+      break;
+  }
+
+  ctx.restore();
+}
+
 function drawFrontCoverArtwork(
   ctx: CanvasRenderingContext2D,
   width: number,
@@ -256,41 +721,8 @@ function drawFrontCoverArtwork(
   ctx.lineWidth = 2;
   ctx.stroke();
 
-  // Central Emblem / Astrolabe Graphic
-  const cy = 420;
-  ctx.save();
-  ctx.translate(width / 2, cy);
-  ctx.strokeStyle = foil;
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.arc(0, 0, 90, 0, Math.PI * 2);
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.arc(0, 0, 75, 0, Math.PI * 2);
-  ctx.stroke();
-
-  // 8-point geometric star
-  ctx.beginPath();
-  for (let i = 0; i < 8; i++) {
-    const angle = (i * Math.PI) / 4;
-    const r1 = 85;
-    const r2 = 35;
-    const x1 = Math.cos(angle) * r1;
-    const y1 = Math.sin(angle) * r1;
-    const x2 = Math.cos(angle + Math.PI / 8) * r2;
-    const y2 = Math.sin(angle + Math.PI / 8) * r2;
-    if (i === 0) ctx.moveTo(x1, y1);
-    else ctx.lineTo(x1, y1);
-    ctx.lineTo(x2, y2);
-  }
-  ctx.closePath();
-  ctx.fillStyle = foil;
-  ctx.globalAlpha = 0.25;
-  ctx.fill();
-  ctx.globalAlpha = 1.0;
-  ctx.stroke();
-  ctx.restore();
+  // Custom Emblem for this Specific Project
+  drawProjectFrontEmblem(ctx, width, 420, book, foil);
 
   // Book Title (Majestic Serif with embossed shadow)
   ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
@@ -399,6 +831,88 @@ export async function createFrontCoverTextureAsync(
 // 7. Spine Texture (Sync & Async)
 // ============================================================================
 
+function drawProjectSpineSigil(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  book: ProjectBook,
+  foil: string
+): void {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.strokeStyle = foil;
+  ctx.fillStyle = foil;
+
+  switch (book.id) {
+    case 'code-search': {
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, -22); ctx.lineTo(20, 0); ctx.lineTo(0, 22); ctx.lineTo(-20, 0);
+      ctx.closePath();
+      ctx.stroke();
+      ctx.font = '700 13px "JetBrains Mono", monospace';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('</>', 0, 1);
+      break;
+    }
+    case 'card-drafter': {
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(-12, -18, 24, 36);
+      ctx.beginPath();
+      ctx.moveTo(0, -8); ctx.lineTo(6, 0); ctx.lineTo(0, 8); ctx.lineTo(-6, 0);
+      ctx.closePath();
+      ctx.fill();
+      break;
+    }
+    case 'automate-ai': {
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.arc(0, 0, 18, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      for (let i = 0; i < 4; i++) {
+        const a1 = (i * Math.PI) / 2;
+        const a2 = a1 + Math.PI / 4;
+        if (i === 0) ctx.moveTo(Math.cos(a1) * 12, Math.sin(a1) * 12);
+        else ctx.lineTo(Math.cos(a1) * 12, Math.sin(a1) * 12);
+        ctx.lineTo(Math.cos(a2) * 4, Math.sin(a2) * 4);
+      }
+      ctx.closePath();
+      ctx.fill();
+      break;
+    }
+    case 'a-new-story': {
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(0, 12); ctx.lineTo(-14, 8); ctx.lineTo(-14, -8); ctx.lineTo(0, -5);
+      ctx.lineTo(14, -8); ctx.lineTo(14, 8); ctx.closePath();
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(0, -5); ctx.lineTo(0, 12);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(0, -14, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+    case 'portfolio-archive':
+    default: {
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(-14, -18, 28, 36);
+      ctx.beginPath();
+      ctx.arc(0, -4, 10, Math.PI, 0, false);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(0, 4, 3, 0, Math.PI * 2);
+      ctx.fill();
+      break;
+    }
+  }
+
+  ctx.restore();
+}
+
 function drawSpineArtwork(
   ctx: CanvasRenderingContext2D,
   width: number,
@@ -424,6 +938,9 @@ function drawSpineArtwork(
   ctx.font = '600 16px "Ppmuseum", "PP Museum", "JetBrains Mono", monospace';
   ctx.letterSpacing = '2px';
   ctx.fillText(book.year || '', width / 2, 90);
+
+  // Miniature Gilded Spine Sigil
+  drawProjectSpineSigil(ctx, width / 2, 250, book, foil);
 
   // Vertical Book Title
   ctx.save();

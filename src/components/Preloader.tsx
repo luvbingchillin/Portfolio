@@ -66,7 +66,9 @@ export const Preloader: FC<PreloaderProps> = ({
   const [isExiting, setIsExiting] = useState(false);
   const completedRef = useRef(false);
   const onLoadedRef = useRef(onLoaded);
-  onLoadedRef.current = onLoaded;
+  useEffect(() => {
+    onLoadedRef.current = onLoaded;
+  }, [onLoaded]);
 
   // Derive current beat
   const activeBeat = useMemo(() => {

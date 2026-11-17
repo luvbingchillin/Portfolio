@@ -346,6 +346,7 @@ html, body, #root {
 .tracking-wide { letter-spacing: 0.025em; }
 
 .text-\[10px\] { font-size: 10px; }
+.text-\[10\.5px\] { font-size: 10.5px; }
 .text-\[11px\] { font-size: 11px; }
 .text-\[13px\] { font-size: 13px; }
 .text-xs { font-size: 0.75rem; line-height: 1rem; }
@@ -451,6 +452,7 @@ html, body, #root {
 .text-\[\#7d6c5c\] { color: #7d6c5c; }
 .text-\[\#7a644e\] { color: #7a644e; }
 .text-\[\#726150\] { color: #726150; }
+.text-\[\#675c4e\] { color: #675c4e; }
 .text-\[\#635547\] { color: #635547; }
 .text-\[\#baa894\] { color: #baa894; }
 .text-\[\#d1c2b0\] { color: #d1c2b0; }
@@ -585,7 +587,7 @@ html, body, #root {
 }
 
 .animate-folio-out {
-  animation: folioScaleOut 0.20s cubic-bezier(0.4, 0, 1, 1) forwards;
+  animation: folioScaleOut 0.22s cubic-bezier(0.4, 0, 1, 1) forwards;
 }
 
 .animate-stagger-1 {

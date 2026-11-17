@@ -949,6 +949,7 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
       RAYCAST_MOUSE.y = y;
 
       if (!isLoadedRef.current) return;
+      if (isModalOpenRef.current || stateRef.current.isOpen) return;
 
       if (stateRef.current.isDragging) {
         const deltaX = e.clientX - stateRef.current.lastDragX;
@@ -1034,6 +1035,7 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
 
     const handleMouseDown = (e: MouseEvent | PointerEvent) => {
       if (!isLoadedRef.current) return;
+      if (isModalOpenRef.current || stateRef.current.isOpen) return;
 
       // Raycast on mousedown to decide drag mode
       const nx = ((e.clientX - boundsLeft) / boundsWidth) * 2 - 1;
@@ -1054,8 +1056,9 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
         }
       }
 
+      const isTouch = 'pointerType' in e && (e as PointerEvent).pointerType === 'touch';
       stateRef.current.isDragging = true;
-      stateRef.current.dragMode = hitActiveBook ? 'rotate' : 'scroll';
+      stateRef.current.dragMode = (hitActiveBook && !isTouch) ? 'rotate' : 'scroll';
       stateRef.current.dragStartX = e.clientX;
       stateRef.current.dragStartY = e.clientY;
       stateRef.current.lastDragX = e.clientX;
@@ -1067,6 +1070,10 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
 
     const handleMouseUp = (e: MouseEvent | PointerEvent) => {
       if (!isLoadedRef.current) return;
+      if (isModalOpenRef.current || stateRef.current.isOpen) {
+        stateRef.current.isDragging = false;
+        return;
+      }
       if (!stateRef.current.isDragging) return;
       stateRef.current.isDragging = false;
       requestRender(10);
@@ -1134,13 +1141,15 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
 
         if (hitIdx !== null) {
           if (hitIdx === stateRef.current.activeIndex) {
+            if (isModalOpenRef.current || stateRef.current.isOpen) return;
             const isMidFlip = stateRef.current.flipAngle > 0.15 && stateRef.current.flipAngle < Math.PI - 0.15;
             if (!isMidFlip) {
-              stateRef.current.targetOpen = stateRef.current.targetOpen > 0.5 ? 0.0 : 1.0;
+              stateRef.current.targetOpen = 1.0;
               requestRender(60);
               onOpenSpreadRef.current();
             }
           } else {
+            if (isModalOpenRef.current || stateRef.current.isOpen) return;
             onSelectBookRef.current(hitIdx);
           }
         }
@@ -1150,6 +1159,7 @@ export const LibraryScene: FC<LibrarySceneProps> = ({
     // Wheel navigation (horizontal or vertical delta)
     const handleWheel = (e: WheelEvent) => {
       if (!isLoadedRef.current) return;
+      if (isModalOpenRef.current || stateRef.current.isOpen) return;
       e.preventDefault();
       const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
       stateRef.current.targetScroll += delta * 0.003;

@@ -27,6 +27,10 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({
   const prevActiveElementRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
+    modalRef.current?.scrollTo({ top: 0, behavior: 'instant' });
+  }, [currentIndex]);
+
+  useEffect(() => {
     prevActiveElementRef.current = document.activeElement as HTMLElement | null;
     closeBtnRef.current?.focus();
 
@@ -94,7 +98,7 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({
 
       {/* 2. Top Header Bar (Full Bleed Paper Margin) */}
       <header className="relative z-20 w-full bg-[#f4ece0] border-b border-[#ded5c0] px-4 sm:px-8 py-3 flex items-center justify-between shrink-0 shadow-2xs animate-stagger-1">
-        <div className="flex items-center gap-3 text-[10px] font-eyebrow uppercase tracking-[0.20em] text-[#7d7162]">
+        <div className="flex items-center gap-3 text-[10px] font-eyebrow uppercase tracking-[0.20em] text-[#675c4e]">
           <span className="text-[#891a20] font-bold">§ {String(currentIndex + 1).padStart(2, '0')}</span>
           <span className="hidden sm:inline">ATHENAEUM ARCHIVAL MONOGRAPH //</span>
           <span className="text-[#1a1614] font-medium">{book.category.toUpperCase()}</span>
@@ -108,7 +112,7 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({
           >
             <ArrowUp className="w-3.5 h-3.5 text-[#891a20]" />
             <span>Return to 3D Shelf</span>
-            <span className="text-[9px] text-[#8a7e6e] border border-[#ded5c0] px-1 rounded-xs">ESC</span>
+            <span className="text-[9px] text-[#675c4e] border border-[#ded5c0] px-1 rounded-xs">ESC</span>
           </button>
           <button
             ref={closeBtnRef}
@@ -152,7 +156,7 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({
             <div className="space-y-6 sm:space-y-7 relative">
               
               {/* Running Folio Header (Left) */}
-              <div className="flex justify-between items-center text-[10px] font-eyebrow uppercase tracking-[0.22em] text-[#7d7162] border-b border-[#ded5c0] pb-2.5">
+              <div className="flex justify-between items-center text-[10px] font-eyebrow uppercase tracking-[0.22em] text-[#675c4e] border-b border-[#ded5c0] pb-2.5">
                 <span className="flex items-center gap-1.5">
                   <span className="text-[#891a20] font-bold">§ {String(currentIndex + 1).padStart(2, '0')}</span>
                   <span>MONOGRAPH // {book.category.toUpperCase()}</span>
@@ -165,13 +169,13 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({
                 <span className="px-2.5 py-0.5 rounded-xs bg-[#1a1614] text-[#fbf8f1]">
                   {book.category}
                 </span>
-                <span className="text-[#8a7e6e]">•</span>
+                <span className="text-[#675c4e]">•</span>
                 <span className="border border-[#ded5c0] px-2 py-0.5 rounded-xs bg-[#f4eedf]/80">
                   CALL NO. {book.callNumber}
                 </span>
-                <span className="text-[#8a7e6e]">•</span>
+                <span className="text-[#675c4e]">•</span>
                 <span>YEAR {book.year}</span>
-                <span className="text-[#8a7e6e]">•</span>
+                <span className="text-[#675c4e]">•</span>
                 <span>{book.edition}</span>
               </div>
 
@@ -203,14 +207,14 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({
 
               {/* Clean Archival Telemetry Metrics (Typographic Table) */}
               <div className="pt-4 border-t border-[#ded5c0]/70">
-                <div className="text-[9px] font-eyebrow uppercase tracking-[0.20em] text-[#7d7162] pb-2 flex justify-between">
+                <div className="text-[10.5px] font-eyebrow uppercase tracking-[0.20em] text-[#675c4e] pb-2 flex justify-between">
                   <span>ARCHIVAL TELEMETRY</span>
                   <span className="text-[#891a20]">TABLE 01</span>
                 </div>
                 <div className="grid grid-cols-3 divide-x divide-[#ded5c0] pt-1">
                   {book.metrics.map((m, i) => (
                     <div key={i} className={`px-3 py-1 ${i === 0 ? 'pl-0' : ''} ${i === 2 ? 'pr-0 text-right' : i === 1 ? 'text-center' : 'text-left'}`}>
-                      <div className="text-[9px] font-eyebrow uppercase tracking-[0.16em] text-[#786d5e]">{m.label}</div>
+                      <div className="text-[10.5px] font-eyebrow uppercase tracking-[0.16em] text-[#675c4e]">{m.label}</div>
                       <div className="text-base sm:text-lg lg:text-xl font-heading font-normal text-[#1a1614] mt-0.5 tabular-nums">{m.value}</div>
                     </div>
                   ))}
@@ -220,7 +224,7 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({
             </div>
 
             {/* Verso Folio Foot */}
-            <div className="pt-4 mt-6 border-t border-[#ded5c0] flex justify-between items-center text-[10px] font-eyebrow uppercase tracking-[0.20em] text-[#8a7e6e] relative">
+            <div className="pt-4 mt-6 border-t border-[#ded5c0] flex justify-between items-center text-[10px] font-eyebrow uppercase tracking-[0.20em] text-[#675c4e] relative">
               <span>{book.stackShelf.toUpperCase()}</span>
               <span className="font-serif italic font-normal text-xs text-[#5c5246]">— {leftPageNum} —</span>
             </div>
@@ -234,7 +238,7 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({
             <div className="space-y-6 sm:space-y-7 relative">
               
               {/* Running Folio Header (Right) */}
-              <div className="flex justify-between items-center text-[10px] font-eyebrow uppercase tracking-[0.22em] text-[#7d7162] border-b border-[#ded5c0] pb-2.5">
+              <div className="flex justify-between items-center text-[10px] font-eyebrow uppercase tracking-[0.22em] text-[#675c4e] border-b border-[#ded5c0] pb-2.5">
                 <span>ATELIER SPECIFICATION & ARCHITECTURE</span>
                 <span className="text-[#891a20]">SECTION // B</span>
               </div>
@@ -246,7 +250,7 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({
                     <Award className="w-3.5 h-3.5 text-[#891a20]" />
                     Key Treatises & System Notes
                   </span>
-                  <span className="font-mono text-[9px] text-[#786d5e]">{book.keyFeatures.length} ENTRIES</span>
+                  <span className="font-mono text-[10.5px] text-[#675c4e]">{book.keyFeatures.length} ENTRIES</span>
                 </div>
 
                 <ul className="space-y-2.5 pt-1">
@@ -281,14 +285,14 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({
               {/* Physical Book Material Specifications (Elegant Colophon Footnote) */}
               <div className="pt-3 pb-1 border-t border-[#ded5c0]/70 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[10px] font-eyebrow uppercase tracking-[0.16em] text-[#6b6051]">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[#8a7e6e]">BINDING:</span>
+                  <span className="text-[#675c4e]">BINDING:</span>
                   <span className="text-[#1a1614] font-medium flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full inline-block border border-black/20" style={{ backgroundColor: book.coverColor }} />
                     {book.bindingMaterial || book.coverColor}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[#8a7e6e]">FOIL:</span>
+                  <span className="text-[#675c4e]">FOIL:</span>
                   <span className="text-[#1a1614] font-medium flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full inline-block border border-black/20" style={{ backgroundColor: book.accentColor }} />
                     {book.foilMaterial || book.accentColor}
@@ -325,7 +329,7 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({
             </div>
 
             {/* Recto Folio Foot */}
-            <div className="pt-4 mt-6 border-t border-[#ded5c0] flex justify-between items-center text-[10px] font-eyebrow uppercase tracking-[0.20em] text-[#8a7e6e] relative">
+            <div className="pt-4 mt-6 border-t border-[#ded5c0] flex justify-between items-center text-[10px] font-eyebrow uppercase tracking-[0.20em] text-[#675c4e] relative">
               <span className="font-serif italic font-normal text-xs text-[#5c5246]">— {rightPageNum} —</span>
               <span>KANG'S ATHENAEUM // MONOGRAPH</span>
             </div>
@@ -341,7 +345,7 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({
             className="min-h-[44px] min-w-[44px] flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xs bg-[#fcf9f2] hover:bg-white text-[#2c2621] border border-[#d5caa8] disabled:opacity-40 disabled:cursor-not-allowed transition-all text-[11px] font-eyebrow uppercase tracking-[0.16em] cursor-pointer shadow-2xs focus-visible:outline-2 focus-visible:outline-[#891a20] focus-visible:outline-offset-2"
           >
             <ChevronLeft className="w-3.5 h-3.5 text-[#891a20]" />
-            <span>Prev</span>
+            <span>[←] Prev</span>
           </button>
 
           <button
@@ -357,7 +361,7 @@ export const BookDetailModal: FC<BookDetailModalProps> = ({
             disabled={!onSelectNext || currentIndex === totalCount - 1}
             className="min-h-[44px] min-w-[44px] flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-xs bg-[#fcf9f2] hover:bg-white text-[#2c2621] border border-[#d5caa8] disabled:opacity-40 disabled:cursor-not-allowed transition-all text-[11px] font-eyebrow uppercase tracking-[0.16em] cursor-pointer shadow-2xs focus-visible:outline-2 focus-visible:outline-[#891a20] focus-visible:outline-offset-2"
           >
-            <span>Next</span>
+            <span>Next [→]</span>
             <ChevronRight className="w-3.5 h-3.5 text-[#891a20]" />
           </button>
         </div>

@@ -18,8 +18,11 @@ export function App() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
   const [isPreloaderMounted, setIsPreloaderMounted] = useState(true);
+  const isLoadedRef = useRef(false);
 
   const handlePreloaderComplete = useCallback(() => {
+    if (isLoadedRef.current) return;
+    isLoadedRef.current = true;
     setIsLoaded(true);
     // Unmount Preloader from DOM after 1150ms fan reveal transition
     setTimeout(() => {
@@ -79,36 +82,6 @@ export function App() {
     setIsFlipped(false);
   }, []);
 
-  // Keyboard navigation
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (!isLoaded) return;
-
-      if (e.key === 'Escape') {
-        if (isSpreadOpen) {
-          handleCloseSpread();
-        }
-        return;
-      }
-
-      if (isSpreadOpen) return;
-
-      if (e.key === 'ArrowLeft') {
-        setActiveIndex((prev) => Math.max(0, prev - 1));
-      } else if (e.key === 'ArrowRight') {
-        setActiveIndex((prev) => Math.min(BOOKS_CATALOG.length - 1, prev + 1));
-      } else if (e.key === 'Enter') {
-        handleOpenSpread();
-      }
-    },
-    [isSpreadOpen, isLoaded, handleCloseSpread, handleOpenSpread]
-  );
-
-  useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleKeyDown]);
-
   const handleFlip = useCallback((flipped: boolean) => {
     setIsFlipped(flipped);
   }, []);
@@ -117,8 +90,65 @@ export function App() {
     setIsFlipped((prev) => !prev);
   }, []);
 
+  // Keyboard navigation
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      // Preloader active keyboard handler (Space or Escape skips boot sequence)
+      if (!isLoaded) {
+        if (e.key === ' ' || e.key === 'Spacebar' || e.key === 'Escape' || e.key === 'Enter') {
+          e.preventDefault();
+          handlePreloaderComplete();
+        }
+        return;
+      }
+
+      if (e.key === 'Escape') {
+        if (isSpreadOpen || isOpening) {
+          handleCloseSpread();
+        }
+        return;
+      }
+
+      if (isSpreadOpen || isOpening) return;
+
+      // 'f' / 'F' key toggles book inspection flip when modal is not open
+      if (e.key === 'f' || e.key === 'F') {
+        e.preventDefault();
+        handleToggleFlip();
+        return;
+      }
+
+      if (e.key === 'ArrowLeft') {
+        handlePrevBook();
+      } else if (e.key === 'ArrowRight') {
+        handleNextBook();
+      } else if (e.key === 'Enter') {
+        handleOpenSpread();
+      }
+    },
+    [
+      isLoaded,
+      isSpreadOpen,
+      isOpening,
+      handlePreloaderComplete,
+      handleCloseSpread,
+      handleToggleFlip,
+      handlePrevBook,
+      handleNextBook,
+      handleOpenSpread
+    ]
+  );
+
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleKeyDown]);
+
   return (
-    <main className="relative w-screen h-screen bg-white text-[#171c1c] font-body overflow-hidden selection:bg-[#891a20] selection:text-white">
+    <main
+      onClick={!isLoaded ? handlePreloaderComplete : undefined}
+      className={`relative w-screen h-screen bg-white text-[#171c1c] font-body overflow-hidden selection:bg-[#891a20] selection:text-white ${!isLoaded ? 'cursor-pointer' : ''}`}
+    >
       
       {/* 3D WebGL Library Stage */}
       <div
@@ -139,12 +169,17 @@ export function App() {
           isOpen={isOpening || (isSpreadOpen && !isClosing)}
         />
 
-        {/* Preloader Screen */}
+        {/* Preloader Screen (Click to skip boot sequence) */}
         {isPreloaderMounted && (
-          <Preloader
-            externalProgress={loadProgress}
-            onLoaded={handlePreloaderComplete}
-          />
+          <div
+            onClick={!isLoaded ? handlePreloaderComplete : undefined}
+            className={!isLoaded ? 'cursor-pointer' : undefined}
+          >
+            <Preloader
+              externalProgress={loadProgress}
+              onLoaded={handlePreloaderComplete}
+            />
+          </div>
         )}
 
         {/* Library UI Overlay (Fixed Top Navigation & Editorial Info) */}

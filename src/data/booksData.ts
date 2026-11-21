@@ -10,8 +10,8 @@ export const BOOKS_CATALOG: ProjectBook[] = [
     year: '2026',
     category: 'Systems & Tools',
     curator: 'Kang Yuchen',
-    shortDescription: 'High-throughput code repository search combining AST parsing with vector embeddings.',
-    fullSynopsis: 'An intelligent semantic codebase retrieval system designed to locate functions, types, and logic flows across multi-gigabyte polyglot repositories. Implements fast inverted indexing alongside dense neural embeddings for natural language code queries.',
+    shortDescription: 'Fast semantic code search across large repositories using Rust, Tree-Sitter AST parsing, and vector embeddings.',
+    fullSynopsis: 'A semantic codebase search engine that indexes functions, types, and logic flows across large polyglot repositories for natural-language queries. Built with Rust, Tree-Sitter AST chunking, vector embeddings, and an interactive React syntax visualizer.',
     techStack: ['TypeScript', 'Rust', 'Tree-Sitter', 'Vector Search', 'React'],
     metrics: [
       { label: 'Latency', value: '< 18ms' },
@@ -19,10 +19,10 @@ export const BOOKS_CATALOG: ProjectBook[] = [
       { label: 'Accuracy', value: '99.4%' }
     ],
     keyFeatures: [
-      'AST-aware syntax chunking preserving lexical scope',
-      'Hybrid semantic vector search + BM25 keyword ranking',
-      'Real-time indexing watcher with zero-downtime updates',
-      'Interactive syntax visualizer with cross-reference graph'
+      'Tree-Sitter AST chunking preserving lexical scope and call hierarchies',
+      'Hybrid search combining dense neural vector embeddings with BM25 keyword retrieval',
+      'High-performance Rust indexing pipeline with sub-18ms query latency',
+      'Interactive syntax visualizer and dependency cross-reference graph in React'
     ],
     coverColor: '#172338',      // Oxford Navy Leather
     accentColor: '#e5be65',     // Gilded Auric Foil
@@ -46,8 +46,8 @@ export const BOOKS_CATALOG: ProjectBook[] = [
     year: '2026',
     category: 'Systems & Tools',
     curator: 'Kang Yuchen',
-    shortDescription: 'Real-time MTG booster collation and draft simulator powered by a high-concurrency Go backend.',
-    fullSynopsis: 'A high-throughput card drafting and booster pack collation simulator engineered with Go 1.22 and MongoDB. Accurately models authentic physical print-sheet collation algorithms, rarities, and foil sheet weighting, while serving synchronous drafting lobbies with sub-millisecond pack generation and Python gRPC analytics.',
+    shortDescription: 'Real-time booster collation and card drafting engine built with Go 1.22, MongoDB, and Python gRPC.',
+    fullSynopsis: 'A real-time card drafting and booster pack collation engine. Simulates authentic physical print-sheet collation algorithms and synchronized multiplayer draft lobbies using Go 1.22, MongoDB, Docker, and a Python gRPC analytics microservice.',
     techStack: ['Go', 'MongoDB', 'React 18', 'TypeScript', 'Docker', 'Python', 'gRPC'],
     metrics: [
       { label: 'Pack Latency', value: '< 2ms' },
@@ -55,10 +55,10 @@ export const BOOKS_CATALOG: ProjectBook[] = [
       { label: 'Architecture', value: 'Clean 3-Tier' }
     ],
     keyFeatures: [
-      'Deterministic MTG booster collation reproducing authentic physical print runs',
-      'Clean three-tier layered architecture in Go with context-aware data access',
-      'Real-time drafting lobby synchronization with in-memory RWMutex state management',
-      'Integrated Scryfall card database ingestion pipeline and analytics service'
+      'Deterministic booster pack collation accurately reproducing authentic physical print runs',
+      'Clean three-tier architecture in Go 1.22 with context-aware data access and sub-2ms pack generation',
+      'Real-time synchronized multiplayer drafting lobbies managed with in-memory RWMutex state',
+      'Scryfall card ingestion pipeline and analytics service communicating via Python gRPC'
     ],
     coverColor: '#2b121c',      // Rich Mythic Burgundy Leather
     accentColor: '#f5a778',     // Warm Copper & Foil Stamped Gold
@@ -82,8 +82,8 @@ export const BOOKS_CATALOG: ProjectBook[] = [
     year: '2025',
     category: 'Full-Stack',
     curator: 'Kang Yuchen',
-    shortDescription: 'AI-powered enterprise platform streamlining onboarding, skills growth, and performance management.',
-    fullSynopsis: 'An intelligent enterprise talent platform engineered for the SAP x NTU Hackathon. Automates new employee onboarding journeys, provides AI-driven performance review synthesis and managerial feedback drafts, and maps skills gap assessments to tailored career pathways using FastAPI, LangChain, and OpenAI.',
+    shortDescription: 'AI workforce development platform built with FastAPI, LangChain, OpenAI, and React.',
+    fullSynopsis: 'An enterprise workforce development platform engineered for the SAP x NTU Hackathon. Automates employee onboarding, managerial performance review synthesis, and career skills gap assessments using FastAPI, Python, LangChain, OpenAI, and PostgreSQL.',
     techStack: ['React 18', 'FastAPI', 'Python', 'LangChain', 'OpenAI', 'PostgreSQL', 'Docker'],
     metrics: [
       { label: 'Competition', value: 'SAP x NTU' },
@@ -91,10 +91,10 @@ export const BOOKS_CATALOG: ProjectBook[] = [
       { label: 'Deployment', value: 'Vercel + Cloud' }
     ],
     keyFeatures: [
-      'AI-guided interactive onboarding workflows with checklist and HR automation',
-      'Managerial performance feedback synthesis and constructive review draft generator',
-      'Personalized skills gap analysis paired with AI curriculum recommendations',
-      'Career Oracle path predictor mapping employee growth to internal opportunities'
+      'Interactive onboarding workflows with automated HR checklist progression',
+      'Managerial performance review synthesis and constructive feedback drafts powered by LangChain & OpenAI',
+      'Personalized skills gap analysis engine mapping employee growth to internal opportunities',
+      'Modular microservice backend built with FastAPI, PostgreSQL, and Docker containerization'
     ],
     coverColor: '#0f2821',      // Deep Malachite Pine Leather
     accentColor: '#6ee7b7',     // Radiant Mint & Gold Foil
@@ -118,8 +118,8 @@ export const BOOKS_CATALOG: ProjectBook[] = [
     year: '2025',
     category: 'Full-Stack',
     curator: 'Kang Yuchen',
-    shortDescription: 'AI-assisted literary matching engine helping readers discover next reads based on taste and mood.',
-    fullSynopsis: 'A modern book curation and recommendation platform pairing readers with literary works tailored to dynamic mood vectors and narrative tropes. Integrates OpenAI natural language embeddings with a Supabase PostgreSQL backend and Express API, complete with interactive shelf management and user testimonial archives.',
+    shortDescription: 'Mood-based literary recommendation platform powered by OpenAI embeddings, Express.js, and Supabase.',
+    fullSynopsis: 'A personalized literary discovery platform that matches readers to novels based on dynamic mood vectors and narrative tropes. Built with OpenAI natural-language embeddings, an Express.js API, Supabase PostgreSQL, and an editorial React interface.',
     techStack: ['React', 'Vite', 'Express.js', 'Supabase', 'OpenAI', 'TailwindCSS'],
     metrics: [
       { label: 'Live App', value: 'Vercel' },
@@ -127,10 +127,10 @@ export const BOOKS_CATALOG: ProjectBook[] = [
       { label: 'Recommendation', value: 'OpenAI Vectors' }
     ],
     keyFeatures: [
-      'Interactive Matcher engine mapping reader moods to thematic narrative trajectories',
-      'Live book search and personal bookshelf management with real-time UI refresh',
-      'JWT-secured session handling and Supabase authentication with cookie middleware',
-      'Responsive editorial reading interface styled with Tailwind and Framer Motion'
+      'Interactive narrative matcher mapping reader mood inputs to thematic literary trajectories',
+      'Semantic recommendation pipeline powered by OpenAI text embeddings and Supabase PostgreSQL',
+      'Live personal bookshelf curation with real-time catalog search and reading list management',
+      'Secure session authentication with JWT cookie middleware and a responsive Tailwind UI'
     ],
     coverColor: '#251535',      // Byzantine Midnight Plum Leather
     accentColor: '#d8b4fe',     // Celestial Lavender Gilded Foil
@@ -154,8 +154,8 @@ export const BOOKS_CATALOG: ProjectBook[] = [
     year: '2026',
     category: 'Interactive',
     curator: 'Kang Yuchen',
-    shortDescription: 'The current portfolio experience: 3D interactive book carousel with PBR leather, gold foil & spring physics.',
-    fullSynopsis: 'Engineered with custom procedural canvas textures, physical book lathe & box geometries, and harmonic spring damping. Replaces conventional portfolio web grids with an authentic tactile archive reminiscent of historic European libraries.',
+    shortDescription: 'Interactive 3D library carousel built with Three.js, React 19, procedural canvas textures, and spring physics.',
+    fullSynopsis: 'An interactive 3D portfolio presenting engineering projects as physical archival tomes. Engineered with Three.js, React 19, and Vite, featuring 100% procedural leather and gold-foil canvas textures, harmonic spring physics, and full-bleed reading monographs.',
     techStack: ['React 19', 'Three.js', 'TypeScript', 'Vite', 'Canvas 2D API'],
     metrics: [
       { label: 'Bundle', value: '< 180kb Gzip' },
@@ -163,10 +163,10 @@ export const BOOKS_CATALOG: ProjectBook[] = [
       { label: 'Textures', value: '100% Procedural' }
     ],
     keyFeatures: [
-      'Procedural embossed leather & gilded typography generation',
-      'Double-sided book flip mechanics with openable reading spread',
-      'Dynamic key & rim lighting with cursor parallax tracking',
-      'Harmonic spring physics with velocity banking and flow lean'
+      'Interactive 3D book carousel rendered with Three.js WebGL and dynamic directional lighting',
+      'Procedural canvas generator creating bespoke embossed leather covers and gold-foil typography',
+      'Harmonic spring physics with velocity-based aerodynamic banking and drag-to-rotate inspection',
+      'Full-bleed archival monograph reading modal with smooth keyboard traversal and scale convergence'
     ],
     coverColor: '#2b190e',      // Antique Saddle Mahogany Leather
     accentColor: '#f5c563',     // 24K Gold Leaf
